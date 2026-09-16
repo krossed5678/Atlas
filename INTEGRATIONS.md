@@ -7,7 +7,7 @@
 3. Store no Robinhood username or password in this project.
 4. Keep `live_trading_allowed=false`; the platform produces a reviewable, idempotent order handoff only.
 
-Browser status: BrowserAct 1.4.2 is installed and Robinhood’s official Agentic guidance was opened. Creating the MCP connection is intentionally waiting for the user’s action-time confirmation because it creates persistent access to brokerage account data and potential Agentic-account trading access.
+Browser status: BrowserAct 1.4.2 is installed. The official `robinhood-trading` Streamable HTTP MCP is registered globally in Codex and OAuth was approved on 2026-09-16. A privacy-minimized read-only `get_accounts` verification succeeded (four linked accounts; account numbers, balances, positions, and orders were not retrieved or logged). ASTRA continues to default to PAPER, and its live gate remains locked.
 
 ## Shopify and TikTok Shop
 

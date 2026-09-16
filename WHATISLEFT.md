@@ -15,6 +15,7 @@ Repository: https://github.com/krossed5678/Atlas.git (`main`, initial commit `43
 - `ASTRA Local Safe Worker` is registered to run local queued work every 15 minutes; it contains no external write path.
 - Git repository initialized and pushed to GitHub; secrets, logs, database state, model files, and virtual environment are excluded.
 - Ollama 0.34.1 and BrowserAct 1.4.2 are installed. Qwen model files are stored in `C:\Users\koanr\.ollama\models` and are currently downloading.
+- Robinhood's official `robinhood-trading` MCP is globally registered in Codex and OAuth is verified by one privacy-minimized read-only account check. ASTRA’s application-level live-trading gate remains false.
 
 ## BUILT BUT NOT VERIFIED
 
@@ -35,7 +36,7 @@ Repository: https://github.com/krossed5678/Atlas.git (`main`, initial commit `43
 ## NEXT BUILD CHECKPOINTS
 
 - [ ] Finish verifying Python, Ollama, Blender, FFmpeg, Node, and Git installations.
-- [ ] Finish resumed `qwen3-vl:4b` pull and smoke-test it; latest observed progress is 80% (2.6 GB / 3.3 GB).
+- [ ] Finish resumed `qwen3-vl:4b` pull and smoke-test it; two local connection resets occurred at 67% and 98%, and the final resume is active.
 - [x] Install dependencies and run initial safety suite (2 passed).
 - [ ] Restart/open a fresh terminal, verify the completed Ollama 0.34.1 installation, and pull/smoke-test `qwen3-vl:4b`.
 - [ ] Complete and verify the still-running Blender installation; verify FFmpeg, Node, and Git command paths in a fresh terminal.
@@ -43,5 +44,6 @@ Repository: https://github.com/krossed5678/Atlas.git (`main`, initial commit `43
 - [ ] Add Shopify/TikTok sync, Stripe payout, mailbox, OpenAI, and Robinhood official adapters after credentials/authorization.
 - [ ] Install the supported browser automation runtime after user confirmation, then open Robinhood's official Agentic connection page for user sign-in and approval.
 - [x] Install BrowserAct and open Robinhood's official Agentic Trading guidance.
-- [ ] Receive action-time confirmation and complete Robinhood’s official sign-in/MCP-connection flow; no credentials are stored in ASTRA.
+- [x] Complete Robinhood’s official sign-in/MCP connection; credentials are stored only by Codex/Robinhood OAuth, never in ASTRA.
+- [ ] Restart/reload the desktop Codex task to make the newly registered Robinhood MCP directly available to this task’s tool registry; until then, verified read-only MCP checks run through the local Codex CLI.
 - [x] Enable and verify the Windows scheduled safe worker.
