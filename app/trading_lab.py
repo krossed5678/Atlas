@@ -67,6 +67,27 @@ def metrics(returns: np.ndarray) -> dict[str, float | int]:
     return {"total_return": float(equity[-1] - 1), "sharpe": sharpe, "max_drawdown": drawdown, "trades": int(np.count_nonzero(returns))}
 
 
+def walk_forward_report(closes: np.ndarray, candidate: Candidate, start: int, fee_bps: float, slippage_bps: float, folds: int = 3) -> dict:
+    """Evaluate a fixed candidate in sequential unseen periods without refitting it."""
+    unseen=np.array_split(closes[start:],folds)
+    reports=[]
+    for index, segment in enumerate(unseen, start=1):
+        returns=strategy_returns(segment,candidate,fee_bps,slippage_bps)
+        report=metrics(returns); report["fold"]=index;report["bars"]=int(len(segment));reports.append(report)
+    sharpes=[float(report["sharpe"]) for report in reports]
+    drawdowns=[float(report["max_drawdown"]) for report in reports]
+    profitable=sum(float(report["total_return"])>0 for report in reports)
+    return {"folds":reports,"median_sharpe":float(np.median(sharpes)) if sharpes else 0.0,"worst_drawdown":min(drawdowns) if drawdowns else 0.0,"profitable_folds":profitable,"fold_count":len(reports),"pass":bool(profitable>=max(2,folds-1) and np.median(sharpes)>0 and min(drawdowns)>=-.15)}
+
+
+def regime_report(closes: np.ndarray) -> dict:
+    returns=np.diff(closes)/closes[:-1]
+    if not len(returns): return {"annualized_volatility":0.0,"latest_regime":"unknown"}
+    volatility=float(np.std(returns)*np.sqrt(252))
+    trend=float(np.mean(returns[-min(20,len(returns)):]))
+    return {"annualized_volatility":round(volatility,4),"latest_regime":"risk_on" if trend>0 and volatility<.4 else ("risk_off" if trend<0 else "high_volatility"),"recent_mean_return":round(trend,6)}
+
+
 def score(candidate: Candidate, closes: np.ndarray, fee_bps: float, slippage_bps: float) -> tuple[float, dict]:
     report = metrics(strategy_returns(closes, candidate, fee_bps, slippage_bps))
     return float(report["sharpe"] + report["total_return"] * 2 + report["max_drawdown"] * 3), report
@@ -103,8 +124,10 @@ def evolve(closes: np.ndarray, population_size: int = 512, generations: int = 20
     train_score, train_metrics = score(champion, train, fee_bps, slippage_bps)
     _, validation_metrics = score(champion, validation, fee_bps, slippage_bps)
     _, test_metrics = score(champion, test, fee_bps, slippage_bps)
-    promoted = bool(validation_metrics["sharpe"] > 0 and test_metrics["sharpe"] > 0 and validation_metrics["max_drawdown"] >= -.20 and test_metrics["max_drawdown"] >= -.20)
-    return {"candidate": asdict(champion), "training": train_metrics, "validation": validation_metrics, "test": test_metrics, "train_score": train_score, "promoted_to_paper_candidate": promoted, "history": history, "data_partitions": {"train": [0, train_end], "validation": [train_end, validation_end], "test": [validation_end, len(closes)]}, "cost_model": {"fee_bps": fee_bps, "slippage_bps": slippage_bps},"efficiency":{"requested_generations":generations,"executed_generations":len(history),"early_stop_patience":patience,"rolling_statistics":"prefix_sum_vectorized"}}
+    walk_forward=walk_forward_report(closes,champion,train_end,fee_bps,slippage_bps)
+    regime=regime_report(closes)
+    promoted = bool(walk_forward["pass"] and validation_metrics["sharpe"] > 0 and test_metrics["sharpe"] > 0 and validation_metrics["max_drawdown"] >= -.20 and test_metrics["max_drawdown"] >= -.20)
+    return {"candidate": asdict(champion), "training": train_metrics, "validation": validation_metrics, "test": test_metrics, "walk_forward":walk_forward,"market_regime":regime,"train_score": train_score, "promoted_to_paper_candidate": promoted, "history": history, "data_partitions": {"train": [0, train_end], "validation": [train_end, validation_end], "test": [validation_end, len(closes)]}, "cost_model": {"fee_bps": fee_bps, "slippage_bps": slippage_bps},"efficiency":{"requested_generations":generations,"executed_generations":len(history),"early_stop_patience":patience,"rolling_statistics":"prefix_sum_vectorized"}}
 
 
 def manifest_entry(path: Path, asset_class: str, symbol: str) -> dict:

@@ -385,7 +385,7 @@ def evolve_strategy(body: EvolutionIn):
     bars=load_bars(Path(series["path"])); closes=np.array([row["close"] for row in bars], dtype=float)
     report=evolve(closes, body.population_size, body.generations, body.seed)
     ident=str(uuid.uuid4()); status="PAPER_CANDIDATE" if report["promoted_to_paper_candidate"] else "REJECTED"
-    report.update({"symbol":series["symbol"],"asset_class":series["asset_class"],"mode":"RESEARCH_ONLY","live_trading_allowed":False})
+    report.update({"symbol":series["symbol"],"asset_class":series["asset_class"],"market_data_sha256":series["sha256"],"mode":"RESEARCH_ONLY","live_trading_allowed":False})
     path=save_result(DATA/"market"/"experiments",series["symbol"],report)
     c=connect(); c.execute("insert into strategies values (?,?,?,?,?,?,?)",(ident,series["symbol"],series["asset_class"],f"evo-{ident[:8]}",status,json.dumps(report),now()));c.commit();c.close()
     audit("strategy.evolved", "strategy", ident, {"symbol":series["symbol"],"status":status,"result_path":str(path)})
@@ -408,7 +408,7 @@ def evolve_universe(body: UniverseEvolutionIn):
         bars=load_bars(Path(series["path"])); closes=np.array([row["close"] for row in bars], dtype=float)
         report=evolve(closes, body.population_size, body.generations, body.seed + offset)
         ident=str(uuid.uuid4()); status="PAPER_CANDIDATE" if report["promoted_to_paper_candidate"] else "REJECTED"
-        report.update({"symbol":series["symbol"],"asset_class":series["asset_class"],"mode":"RESEARCH_ONLY","live_trading_allowed":False})
+        report.update({"symbol":series["symbol"],"asset_class":series["asset_class"],"market_data_sha256":series["sha256"],"mode":"RESEARCH_ONLY","live_trading_allowed":False})
         output=save_result(DATA/"market"/"experiments",series["symbol"],report)
         c=connect(); c.execute("insert into strategies values (?,?,?,?,?,?,?)",(ident,series["symbol"],series["asset_class"],f"evo-{ident[:8]}",status,json.dumps(report),now()));c.commit();c.close()
         completed.append({"id":ident,"symbol":series["symbol"],"asset_class":series["asset_class"],"status":status,"result_path":str(output)})

@@ -26,6 +26,8 @@ def test_research_evolution_is_held_out_and_never_live(tmp_path):
     assert report["live_trading_allowed"] is False
     assert report["data_partitions"]["train"][1] < report["data_partitions"]["validation"][1] < report["data_partitions"]["test"][1]
     assert report["efficiency"]["rolling_statistics"] == "prefix_sum_vectorized"
+    assert report["walk_forward"]["fold_count"] == 3
+    assert report["market_regime"]["latest_regime"] in {"risk_on","risk_off","high_volatility"}
 
 
 def test_universe_evolution_processes_imported_asset_classes(tmp_path):
