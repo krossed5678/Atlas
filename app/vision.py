@@ -33,12 +33,17 @@ def image_features(path: Path) -> dict:
     horizontal=sum(1 for line in segments if abs(line["angle_degrees"]) < 12 or abs(abs(line["angle_degrees"])-180)<12)
     vertical=sum(1 for line in segments if abs(abs(line["angle_degrees"])-90)<12)
     confidence=min(.92, .25 + len(segments)/180)
+    histogram=cv2.calcHist([gray],[0],None,[256],[0,256]).ravel(); probability=histogram/max(1,histogram.sum()); entropy=float(-np.sum(probability[probability>0]*np.log2(probability[probability>0]))/8)
+    flipped=cv2.flip(gray,1); symmetry=float(np.corrcoef(gray.ravel(),flipped.ravel())[0,1]) if np.std(gray) and np.std(flipped) else 0.0
+    brightness_fit=max(0.0,1-abs(brightness-.60)/.60)
+    composition_score=float(np.clip(.35*brightness_fit+.30*entropy+.20*max(0,symmetry)+.15*min(1,len(segments)/50),0,1))
     return {
         "image":path.name,
         "dimensions_px":{"width":width,"height":height},
         "image_quality":{"edge_density":round(float(np.mean(edges>0)),4),"brightness":round(brightness,3),"saturation":round(saturation,3)},
         "camera_estimate":{"perspective_line_count":len(segments),"horizontal_line_count":horizontal,"vertical_line_count":vertical,"confidence":round(confidence,2),"note":"Line geometry supports a camera estimate; focal length and real-world scale remain uncertain without multiple views or measurements."},
         "material_color_estimate":{"mean_rgb":[round(float(value),1) for value in dominant],"confidence":0.55},
+        "aesthetic_signals":{"composition_score":round(composition_score,3),"visual_entropy":round(entropy,3),"symmetry":round(symmetry,3),"brightness_fit":round(brightness_fit,3)},
         "line_segments":segments,
         "uncertainty":["No absolute scale can be inferred from a single image.","Occluded geometry requires multi-view or human review."],
     }

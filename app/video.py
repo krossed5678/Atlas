@@ -6,6 +6,8 @@ import os
 import subprocess
 from pathlib import Path
 
+import numpy as np
+
 from .vision import image_features
 
 DEFAULT_FFMPEG = Path(r"C:\Users\koanr\AppData\Local\Microsoft\WinGet\Packages\Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe\ffmpeg-9.0.1-full_build\bin\ffmpeg.exe")
@@ -21,11 +23,23 @@ def ffmpeg_path() -> str:
 def storyboard(images: list[Path], duration_seconds: float = 3.0) -> dict:
     if not images: raise ValueError("At least one image is required")
     evidence=[image_features(image) for image in images]
-    # Lead with bright/wide-looking frames, retain every supplied photo once.
-    ordered=sorted(evidence,key=lambda item:(item["image_quality"]["brightness"], item["camera_estimate"]["perspective_line_count"]),reverse=True)
+    # Start and end on the strongest composition, but retain each supplied image once.
+    ranked=sorted(evidence,key=lambda item:item["aesthetic_signals"]["composition_score"],reverse=True)
+    if len(ranked)>2:
+        opening, closing=ranked[0],ranked[1]
+        remaining=ranked[2:]
+        ordered=[opening,*remaining,closing]
+    else: ordered=ranked
     moves=("slow_push_in","cinematic_drift_right","slow_pull_back","cinematic_drift_left")
     transitions=("fade","wipeleft","smoothleft","fadeblack")
-    return {"format":"cinematic_photo_promo_v2","duration_seconds":round(len(ordered)*duration_seconds-.75*max(0,len(ordered)-1),1),"looks":{"grade":"warm_luxury","contrast":"gentle","detail":"subtle_sharpening","transitions":"cross_dissolve_and_motion"},"shots":[{"order":index+1,"source_image":item["image"],"duration_seconds":duration_seconds,"movement":moves[index%len(moves)],"transition":transitions[(index-1)%len(transitions)] if index else "fade_from_black","visual_evidence":{"brightness":item["image_quality"]["brightness"],"perspective_lines":item["camera_estimate"]["perspective_line_count"]},"note":"Uses the provided property photograph; no unseen room or amenity is invented."} for index,item in enumerate(ordered)]}
+    shots=[]
+    for index,item in enumerate(ordered):
+        role="opening" if index==0 else ("closing" if index==len(ordered)-1 else "chapter")
+        previous=ordered[index-1] if index else None
+        compatibility=1.0 if not previous else 1-min(1,np.mean(np.abs(np.array(item["material_color_estimate"]["mean_rgb"])-np.array(previous["material_color_estimate"]["mean_rgb"]))/255))
+        transition="fade_from_black" if not index else ("smoothleft" if compatibility>=.88 else "fade")
+        shots.append({"order":index+1,"sequence_role":role,"source_image":item["image"],"duration_seconds":duration_seconds,"movement":moves[index%len(moves)],"transition":transition,"visual_evidence":{"composition_score":item["aesthetic_signals"]["composition_score"],"brightness":item["image_quality"]["brightness"],"perspective_lines":item["camera_estimate"]["perspective_line_count"],"transition_compatibility":round(float(compatibility),3)},"note":"Uses the provided property photograph; no unseen room or amenity is invented."})
+    return {"format":"cinematic_photo_promo_v3","duration_seconds":round(len(ordered)*duration_seconds-.75*max(0,len(ordered)-1),1),"looks":{"grade":"warm_luxury","contrast":"gentle","detail":"subtle_sharpening","transitions":"composition_aware"},"shots":shots}
 
 
 def render_photo_promo(images: list[Path], output_dir: Path, duration_seconds: float = 3.0, width: int = 1920, height: int = 1080, filename: str = "promotional_video_luxury.mp4") -> dict:
