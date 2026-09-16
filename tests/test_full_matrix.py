@@ -28,3 +28,5 @@ def test_default_commerce_selection_is_safe():
     assert system['commerce']['stripe_context'] == 'acct_1SPAFpI0vp8qwDso'
     assert system['commerce']['stripe_livemode'] is False
     assert system['commerce']['creator_payouts'] == 'human_approval_required'
+    tiktok = client.get('/api/commerce/tiktok/readiness').json()
+    assert tiktok['ready'] is False and tiktok['writes_enabled'] is False

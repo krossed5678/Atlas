@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from app.integrations import commerce_configuration, readiness
 from app.trading_lab import Candidate, SUPPORTED_ASSET_CLASSES, current_signal, evolve, load_bars, manifest_entry, save_result
 from app.video import render_photo_promo
+from app.tiktok_shop import readiness as tiktok_readiness
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("ASTRA_DATA_DIR", ROOT / "data"))
@@ -156,6 +157,10 @@ def system():
     settings = {r["key"]: r["value"] for r in c.execute("select * from settings")}
     c.close()
     return {"counts": counts, "settings": settings, "ollama_configured": bool(os.getenv("ASTRA_OLLAMA_URL", "http://127.0.0.1:11434")), "external_writes_enabled": settings["external_writes_enabled"] == "true", "commerce": commerce_configuration(), "integrations": [item.__dict__ for item in readiness()]}
+
+@app.get("/api/commerce/tiktok/readiness")
+def tiktok_shop_readiness():
+    return tiktok_readiness()
 
 @app.post("/api/system/emergency-stop")
 def emergency_stop():

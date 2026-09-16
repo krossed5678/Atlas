@@ -10,8 +10,8 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - Blender 5.2.1 headless scene-file smoke test passed. FFmpeg installation reported success.
 - Ollama 0.34.1 and `qwen3-vl:4b` are installed. The model lives at `C:\Users\koanr\.ollama\models`; a real local synthetic-room vision run returned structured room, camera, material, object, confidence, and uncertainty JSON.
 - User-supplied photo folders can be imported into the per-property project structure and queued for analysis. Upload intake is also available in the dashboard.
-- OpenCV and scikit-image computer vision are installed and used by the queued property worker for perspective-line, image-quality, color/material evidence, and reference/render scoring. Qwen analysis is layered on top of those measurements.
-- Eleven automated safe-mode tests pass: capital allocation, emergency stop, contract validation, duplicate ledger/lead/order handling, refund allocation reduction, live-gate rejection, local folder intake, default commerce selection, held-out evolutionary research, multi-asset universe batch evolution, reader-bot/cache/position-close deletion, and computer-vision render scoring.
+- OpenCV and scikit-image computer vision are installed and used by the queued property worker for perspective-line, image-quality, color/material evidence, and reference/render scoring. The worker persistently writes image metadata, camera, material, and geometry analysis JSON before layering Qwen analysis on top.
+- Thirteen automated safe-mode tests pass, including duplicate/idempotency protection, capital and live-gate safety, property-folder CV analysis, FFmpeg video rendering, paper-bot lifecycle/cache deletion, strategy evolution, and TikTok readiness gating.
 - Cinematic photo-promo rendering is implemented and verified with FFmpeg: photo-set storyboard, slow push-in shots, MP4 generation, and one-click dashboard render. It uses supplied images only.
 - Local evolutionary Trading Lab is implemented for normalized stock, ETF, and crypto price bars. It evolves 512 parameterized research agents by default, models fees/slippage, enforces train/validation/test separation, stores versioned per-instrument reports, and can promote only to a paper candidate.
 - Paper bot dashboard and lifecycle are implemented: select a held-out candidate, designate one market reader, cache a local snapshot, open/monitor/close simulated positions, and permanently delete the cache attached to a closed position.
@@ -27,6 +27,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - A Robinhood market-data ingestion adapter is not yet present. The Trading Lab accepts normalized local price bars now; the official Robinhood MCP is not used by this local service to fetch a whole-market universe.
 - Stripe Connect configuration hooks select the Kofi Rossi test account without embedding a secret. The implementation design uses Accounts v2 and does not use legacy connected-account types.
 - Shopify selection hook uses the connected default store. Live catalog/order synchronization has not been exercised from this local service.
+- TikTok Shop readiness endpoint and OAuth configuration gate are implemented; merchant API calls, catalog ingestion, order handling, and fulfillment require the official credentials and merchant authorization.
 - OpenAI, TikTok Shop, mailbox, Stripe, and Robinhood adapters have safe readiness checks but are not yet end-to-end service integrations.
 
 ## REQUIRES YOUR AUTHORIZATION
