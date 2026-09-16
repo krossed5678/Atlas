@@ -14,6 +14,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - Fifteen automated safe-mode tests pass, including duplicate/idempotency protection, capital and live-gate safety, property-folder CV analysis, FFmpeg video rendering, paper-bot lifecycle/cache deletion, strategy evolution, TikTok readiness gating, compact vision input, and vectorized strategy efficiency.
 - Cinematic photo-promo rendering is implemented and verified with FFmpeg: 1080p luxury landscape and TikTok vertical exports, CV-ranked shots, varied slow camera motion, warm color finishing, fades, motion transitions, MP4 generation, and one-click dashboard rendering. It uses supplied images only.
 - Promotional-video shot planning is now composition-aware: it measures visual entropy, symmetry, brightness fit, and line evidence; opens/closes on strong images; and uses compatibility-aware transitions rather than a generic sequence.
+- Promotional films now default to an original, locally generated luxury score — warm pads, restrained 80-BPM pulse, and sparse bell-like accents — rather than an arbitrary catalogue soundtrack. ASTRA detects its onsets, aligns photo cuts to beats, stores a `beat_map.json`, and records rights as `bespoke_local_generated`. A specifically licensed/commissioned local track can still be attached with a permission record; it never downloads music automatically.
 - Local evolutionary Trading Lab is implemented for normalized stock, ETF, and crypto price bars. It evolves 512 parameterized research agents by default, models fees/slippage, enforces train/validation/test separation, stores versioned per-instrument reports, and can promote only to a paper candidate.
 - Evolution now adds sequential walk-forward folds, multi-criterion promotion gates, market-regime summaries, deterministic early stopping, and SHA-256 market-data lineage. Reference patterns were reviewed from Qlib, FinRL, and MLflow; their heavyweight stacks are intentionally optional rather than installed on the 4 GB GPU machine.
 - Local LLM defaults are optimized for a 4 GB GPU: compact 1024px JPEG vision inputs, concise structured prompt, 2048-token context, 600-token output ceiling, disk-cached JSON results, and automatic model unload after a scheduled task. Trading evolution uses vectorized prefix sums and early stopping to reduce CPU load.
@@ -54,7 +55,10 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - [x] Install and smoke-test Blender.
 - [x] Register and verify Robinhood Agentic MCP with a privacy-minimized account read.
 - [x] Select Kofi Rossi Stripe test context and default Shopify store in non-secret configuration.
+- [x] Add local licensed-track beat detection and beat-aligned promotional-film cuts.
+- [x] Make an original local luxury score the default for promotional films; use custom/commissioned audio when it is later supplied.
 - [ ] Run a complete supplied-photo-folder-to-cinematic-promotional-video job using an actual property folder.
+- [ ] Add a commercial-use-cleared music track to a property-film request (with source/license note); automatic Newgrounds cycling is deliberately excluded because rights are track-specific.
 - [ ] Build and verify Shopify order/catalog webhooks, TikTok Shop sync, creator attribution, approved calendar publishing, and refund reconciliation.
 - [ ] Build and verify Stripe Connect test onboarding, webhook verification, creator statement generation, and payout-approval handoff; do not enable live mode until the live prerequisites above are complete.
 - [ ] Connect an approved mailbox and implement reviewed send/reply/bounce workflows.

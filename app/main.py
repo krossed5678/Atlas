@@ -144,6 +144,10 @@ class BotCycleIn(BaseModel):
 class VideoIn(BaseModel):
     seconds_per_photo: float = Field(default=3.0, ge=1.0, le=12.0)
     format: Literal["landscape", "portrait"] = "landscape"
+    music_path: str = ""
+    music_license_note: str = Field(default="", max_length=500)
+    bespoke_score: bool = True
+    score_style: Literal["warm_luxury", "coastal", "urban"] = "warm_luxury"
 
 class EmailDraftIn(BaseModel):
     lead_id: str
@@ -253,7 +257,12 @@ def make_promotional_video(property_id: str, body: VideoIn):
     images=sorted(path for path in (base/"source"/"original_images").iterdir() if path.is_file())
     if not images: raise HTTPException(400,"Property has no source images")
     dimensions=(1080,1920,"promotional_video_tiktok.mp4") if body.format == "portrait" else (1920,1080,"promotional_video_luxury.mp4")
-    try: result=render_photo_promo(images,base/"video"/"final",body.seconds_per_photo,*dimensions)
+    music=None
+    if body.music_path.strip():
+        music=Path(body.music_path).expanduser().resolve()
+        if not music.is_file() or music.suffix.lower() not in {".mp3", ".wav", ".m4a", ".aac", ".flac", ".ogg"}: raise HTTPException(400,"Music must be a supported local audio file")
+        if len(body.music_license_note.strip()) < 8: raise HTTPException(400,"Record the track's license or permission before using it")
+    try: result=render_photo_promo(images,base/"video"/"final",body.seconds_per_photo,*dimensions,music,music_license_note=body.music_license_note.strip(),bespoke_score=body.bespoke_score,score_style=body.score_style)
     except Exception as exc: audit("video.failed","property",property_id,{"error":str(exc)});raise HTTPException(500,f"Video render failed: {exc}")
     audit("video.rendered","property",property_id,result)
     return result
