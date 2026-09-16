@@ -12,6 +12,7 @@ Repository: https://github.com/krossed5678/Atlas.git (`main`, initial commit `43
 - Local dashboard server launched successfully at `http://127.0.0.1:8787`; its system-health endpoint was verified with external writes disabled and mode set to PAPER.
 - FFmpeg installer reported success; a fresh terminal session is required for its command alias to appear on PATH.
 - Blender 5.2.1 installation and headless scene-file smoke test passed.
+- Qwen3-VL 4B model pull completed and a real local synthetic-room vision inference returned structured JSON with room, camera, materials, object, confidence, and uncertainty fields.
 - `ASTRA Local Safe Worker` is registered to run local queued work every 15 minutes; it contains no external write path.
 - Git repository initialized and pushed to GitHub; secrets, logs, database state, model files, and virtual environment are excluded.
 - Ollama 0.34.1 and BrowserAct 1.4.2 are installed. Qwen model files are stored in `C:\Users\koanr\.ollama\models` and are currently downloading.
@@ -36,7 +37,7 @@ Repository: https://github.com/krossed5678/Atlas.git (`main`, initial commit `43
 ## NEXT BUILD CHECKPOINTS
 
 - [ ] Finish verifying Python, Ollama, Blender, FFmpeg, Node, and Git installations.
-- [ ] Finish resumed `qwen3-vl:4b` pull and smoke-test it; two local connection resets occurred at 67% and 98%, and the final resume is active.
+- [x] Pull and smoke-test `qwen3-vl:4b` using a synthetic-room image.
 - [x] Install dependencies and run initial safety suite (2 passed).
 - [ ] Restart/open a fresh terminal, verify the completed Ollama 0.34.1 installation, and pull/smoke-test `qwen3-vl:4b`.
 - [ ] Complete and verify the still-running Blender installation; verify FFmpeg, Node, and Git command paths in a fresh terminal.
