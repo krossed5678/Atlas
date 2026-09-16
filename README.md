@@ -24,6 +24,10 @@ The dashboard now supports selecting qualified strategies as paper bots. One sel
 
 Property jobs now calculate image dimensions, edge density, perspective line segments, horizontal/vertical evidence, brightness, saturation, color signals, and uncertainty before sending the image to the local Qwen vision model. `reconstruction_score` compares a Blender render against a reference using structural similarity, edge overlap, and color similarity. These are measurement aids, not guarantees of architectural accuracy.
 
+## Luxury Promo Exports
+
+One click now produces a finished 1080p luxury landscape promo or a 1080×1920 vertical TikTok promo. The editor creates a CV-ranked shot sequence, alternating slow push/pull/drift movement, subtle warm color finishing, sharpening, fades, and motion cross-dissolves. It uses only the supplied photographs and does not invent property features. Music is deliberately omitted unless you provide a licensed track.
+
 Read [INTEGRATIONS.md](INTEGRATIONS.md) before connecting an external account; the repository intentionally contains no credentials.
 
 ## Run

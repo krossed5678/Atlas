@@ -140,6 +140,7 @@ class BotCycleIn(BaseModel):
 
 class VideoIn(BaseModel):
     seconds_per_photo: float = Field(default=3.0, ge=1.0, le=12.0)
+    format: Literal["landscape", "portrait"] = "landscape"
 
 
 @app.on_event("startup")
@@ -209,7 +210,8 @@ def make_promotional_video(property_id: str, body: VideoIn):
     if not base.is_dir(): raise HTTPException(404,"Property does not exist")
     images=sorted(path for path in (base/"source"/"original_images").iterdir() if path.is_file())
     if not images: raise HTTPException(400,"Property has no source images")
-    try: result=render_photo_promo(images,base/"video"/"final",body.seconds_per_photo)
+    dimensions=(1080,1920,"promotional_video_tiktok.mp4") if body.format == "portrait" else (1920,1080,"promotional_video_luxury.mp4")
+    try: result=render_photo_promo(images,base/"video"/"final",body.seconds_per_photo,*dimensions)
     except Exception as exc: audit("video.failed","property",property_id,{"error":str(exc)});raise HTTPException(500,f"Video render failed: {exc}")
     audit("video.rendered","property",property_id,result)
     return result
