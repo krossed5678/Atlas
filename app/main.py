@@ -18,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from app.integrations import commerce_configuration, readiness
 from app.trading_lab import Candidate, SUPPORTED_ASSET_CLASSES, current_signal, evolve, load_bars, manifest_entry, save_result
+from app.video import render_photo_promo
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("ASTRA_DATA_DIR", ROOT / "data"))
@@ -136,6 +137,9 @@ class SnapshotIn(BaseModel):
 class BotCycleIn(BaseModel):
     notional_cents: int = Field(default=10000, gt=0, le=500000)
 
+class VideoIn(BaseModel):
+    seconds_per_photo: float = Field(default=3.0, ge=1.0, le=12.0)
+
 
 @app.on_event("startup")
 def startup() -> None:
@@ -192,6 +196,18 @@ async def create_property(listing_url: str = Form(""), files: list[UploadFile] =
 @app.get("/api/properties")
 def list_properties():
     c = connect(); rows=[dict(r) for r in c.execute("select * from properties order by created_at desc")]; c.close(); return rows
+
+@app.post("/api/properties/{property_id}/promotional-video")
+def make_promotional_video(property_id: str, body: VideoIn):
+    """Render a local cinematic photo promotion from every supplied source image."""
+    base=PROPERTIES/property_id
+    if not base.is_dir(): raise HTTPException(404,"Property does not exist")
+    images=sorted(path for path in (base/"source"/"original_images").iterdir() if path.is_file())
+    if not images: raise HTTPException(400,"Property has no source images")
+    try: result=render_photo_promo(images,base/"video"/"final",body.seconds_per_photo)
+    except Exception as exc: audit("video.failed","property",property_id,{"error":str(exc)});raise HTTPException(500,f"Video render failed: {exc}")
+    audit("video.rendered","property",property_id,result)
+    return result
 
 @app.post("/api/properties/import-folder")
 def import_property_folder(body: FolderImportIn):

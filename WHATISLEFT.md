@@ -12,6 +12,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - User-supplied photo folders can be imported into the per-property project structure and queued for analysis. Upload intake is also available in the dashboard.
 - OpenCV and scikit-image computer vision are installed and used by the queued property worker for perspective-line, image-quality, color/material evidence, and reference/render scoring. Qwen analysis is layered on top of those measurements.
 - Eleven automated safe-mode tests pass: capital allocation, emergency stop, contract validation, duplicate ledger/lead/order handling, refund allocation reduction, live-gate rejection, local folder intake, default commerce selection, held-out evolutionary research, multi-asset universe batch evolution, reader-bot/cache/position-close deletion, and computer-vision render scoring.
+- Cinematic photo-promo rendering is implemented and verified with FFmpeg: photo-set storyboard, slow push-in shots, MP4 generation, and one-click dashboard render. It uses supplied images only.
 - Local evolutionary Trading Lab is implemented for normalized stock, ETF, and crypto price bars. It evolves 512 parameterized research agents by default, models fees/slippage, enforces train/validation/test separation, stores versioned per-instrument reports, and can promote only to a paper candidate.
 - Paper bot dashboard and lifecycle are implemented: select a held-out candidate, designate one market reader, cache a local snapshot, open/monitor/close simulated positions, and permanently delete the cache attached to a closed position.
 - The configured default Shopify store is `x6qufc-nh.myshopify.com` (USD, EDT). Plan: trial — you'll need to upgrade before you can start selling and unlock full features
@@ -47,7 +48,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - [x] Install and smoke-test Blender.
 - [x] Register and verify Robinhood Agentic MCP with a privacy-minimized account read.
 - [x] Select Kofi Rossi Stripe test context and default Shopify store in non-secret configuration.
-- [ ] Run a complete photo-folder-to-Qwen-to-Blender still/render/video job using an actual supplied property folder.
+- [ ] Run a complete supplied-photo-folder-to-cinematic-promotional-video job using an actual property folder.
 - [ ] Build and verify Shopify order/catalog webhooks, TikTok Shop sync, creator attribution, approved calendar publishing, and refund reconciliation.
 - [ ] Build and verify Stripe Connect test onboarding, webhook verification, creator statement generation, and payout-approval handoff; do not enable live mode until the live prerequisites above are complete.
 - [ ] Connect an approved mailbox and implement reviewed send/reply/bounce workflows.
