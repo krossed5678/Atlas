@@ -10,11 +10,14 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
 
+import numpy as np
+
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from app.integrations import commerce_configuration, readiness
+from app.trading_lab import SUPPORTED_ASSET_CLASSES, evolve, load_bars, manifest_entry, save_result
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("ASTRA_DATA_DIR", ROOT / "data"))
@@ -50,6 +53,8 @@ def init_db() -> None:
     create table if not exists ledger (id text primary key, kind text, amount_cents integer, source text, reference_id text unique, created_at text);
     create table if not exists payouts (id text primary key, creator_id text, amount_cents integer, status text, statement text, created_at text);
     create table if not exists trades (id text primary key, mode text, symbol text, side text, quantity real, price real, status text, idempotency_key text unique, created_at text);
+    create table if not exists market_series (symbol text primary key, asset_class text, path text, sha256 text, rows integer, imported_at text);
+    create table if not exists strategies (id text primary key, symbol text, asset_class text, version text, status text, report text, created_at text);
     """)
     defaults = {"emergency_stop": "false", "trading_mode": "PAPER", "live_trading_allowed": "false", "external_writes_enabled": "false", "max_daily_loss_cents": "2500", "max_position_cents": "5000"}
     for key, value in defaults.items():
@@ -101,6 +106,15 @@ class TradeIn(BaseModel):
 class FolderImportIn(BaseModel):
     folder_path: str
     listing_url: str = ""
+
+class MarketFolderIn(BaseModel):
+    folder_path: str
+
+class EvolutionIn(BaseModel):
+    symbol: str
+    population_size: int = Field(default=512, ge=8, le=4096)
+    generations: int = Field(default=20, ge=1, le=200)
+    seed: int = 7
 
 
 @app.on_event("startup")
@@ -229,3 +243,46 @@ def propose_trade(body: TradeIn):
 @app.get("/api/trades")
 def list_trades():
     c=connect(); rows=[dict(r) for r in c.execute("select * from trades order by created_at desc")]; c.close(); return rows
+
+@app.post("/api/trading/import-bars")
+def import_market_bars(body: MarketFolderIn):
+    """Copy normalized `SYMBOL__asset_class.csv` files into the paper-research data store."""
+    source = Path(body.folder_path).expanduser().resolve()
+    if not source.is_dir(): raise HTTPException(400, "Market-data folder does not exist")
+    files = sorted(source.glob("*.csv"))
+    if not files: raise HTTPException(400, "No CSV price-bar files found")
+    destination_root = DATA / "market" / "bars"; destination_root.mkdir(parents=True, exist_ok=True)
+    c = connect(); imported=[]
+    try:
+        for file in files:
+            try: symbol, asset_class = file.stem.rsplit("__", 1)
+            except ValueError: raise HTTPException(400, f"{file.name}: name it SYMBOL__stock.csv, SYMBOL__etf.csv, or SYMBOL__crypto.csv")
+            if asset_class not in SUPPORTED_ASSET_CLASSES: raise HTTPException(400, f"{file.name}: unsupported asset class")
+            bars=load_bars(file); target=destination_root/file.name; shutil.copy2(file, target)
+            entry=manifest_entry(target, asset_class, symbol)
+            c.execute("insert into market_series values (?,?,?,?,?,?) on conflict(symbol) do update set asset_class=excluded.asset_class,path=excluded.path,sha256=excluded.sha256,rows=excluded.rows,imported_at=excluded.imported_at", (entry["symbol"],asset_class,entry["path"],entry["sha256"],len(bars),now()))
+            imported.append({"symbol":entry["symbol"],"asset_class":asset_class,"rows":len(bars)})
+        c.commit()
+    finally: c.close()
+    audit("market_data.imported", "market_data", str(source), {"series": imported})
+    return {"mode":"RESEARCH_ONLY","imported":imported}
+
+@app.get("/api/trading/universe")
+def market_universe():
+    c=connect(); rows=[dict(row) for row in c.execute("select * from market_series order by asset_class, symbol")]; c.close()
+    return {"mode":"RESEARCH_ONLY","series":rows,"asset_classes":sorted(SUPPORTED_ASSET_CLASSES)}
+
+@app.post("/api/trading/evolve")
+def evolve_strategy(body: EvolutionIn):
+    """Evolve candidates on held-out local data. Promotion only creates a paper candidate."""
+    if setting("emergency_stop") == "true": raise HTTPException(423, "Emergency stop is active")
+    c=connect(); series=c.execute("select * from market_series where symbol=?", (body.symbol.upper(),)).fetchone(); c.close()
+    if not series: raise HTTPException(404, "Import normalized price bars for this symbol first")
+    bars=load_bars(Path(series["path"])); closes=np.array([row["close"] for row in bars], dtype=float)
+    report=evolve(closes, body.population_size, body.generations, body.seed)
+    ident=str(uuid.uuid4()); status="PAPER_CANDIDATE" if report["promoted_to_paper_candidate"] else "REJECTED"
+    report.update({"symbol":series["symbol"],"asset_class":series["asset_class"],"mode":"RESEARCH_ONLY","live_trading_allowed":False})
+    path=save_result(DATA/"market"/"experiments",series["symbol"],report)
+    c=connect(); c.execute("insert into strategies values (?,?,?,?,?,?,?)",(ident,series["symbol"],series["asset_class"],f"evo-{ident[:8]}",status,json.dumps(report),now()));c.commit();c.close()
+    audit("strategy.evolved", "strategy", ident, {"symbol":series["symbol"],"status":status,"result_path":str(path)})
+    return {"id":ident,"status":status,"report":report}
