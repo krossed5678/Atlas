@@ -116,6 +116,12 @@ class EvolutionIn(BaseModel):
     generations: int = Field(default=20, ge=1, le=200)
     seed: int = 7
 
+class UniverseEvolutionIn(BaseModel):
+    population_size: int = Field(default=512, ge=8, le=4096)
+    generations: int = Field(default=20, ge=1, le=200)
+    seed: int = 7
+    asset_classes: list[Literal["stock", "etf", "crypto"]] | None = None
+
 
 @app.on_event("startup")
 def startup() -> None:
@@ -286,3 +292,27 @@ def evolve_strategy(body: EvolutionIn):
     c=connect(); c.execute("insert into strategies values (?,?,?,?,?,?,?)",(ident,series["symbol"],series["asset_class"],f"evo-{ident[:8]}",status,json.dumps(report),now()));c.commit();c.close()
     audit("strategy.evolved", "strategy", ident, {"symbol":series["symbol"],"status":status,"result_path":str(path)})
     return {"id":ident,"status":status,"report":report}
+
+@app.post("/api/trading/evolve-universe")
+def evolve_universe(body: UniverseEvolutionIn):
+    """Run isolated research experiments across all imported instruments (no broker access)."""
+    if setting("emergency_stop") == "true": raise HTTPException(423, "Emergency stop is active")
+    c=connect()
+    query="select * from market_series"
+    values: tuple = ()
+    if body.asset_classes:
+        query += " where asset_class in (" + ",".join("?" for _ in body.asset_classes) + ")"
+        values=tuple(body.asset_classes)
+    series_rows=c.execute(query + " order by asset_class,symbol", values).fetchall(); c.close()
+    if not series_rows: raise HTTPException(404, "No normalized market series have been imported")
+    completed=[]
+    for offset, series in enumerate(series_rows):
+        bars=load_bars(Path(series["path"])); closes=np.array([row["close"] for row in bars], dtype=float)
+        report=evolve(closes, body.population_size, body.generations, body.seed + offset)
+        ident=str(uuid.uuid4()); status="PAPER_CANDIDATE" if report["promoted_to_paper_candidate"] else "REJECTED"
+        report.update({"symbol":series["symbol"],"asset_class":series["asset_class"],"mode":"RESEARCH_ONLY","live_trading_allowed":False})
+        output=save_result(DATA/"market"/"experiments",series["symbol"],report)
+        c=connect(); c.execute("insert into strategies values (?,?,?,?,?,?,?)",(ident,series["symbol"],series["asset_class"],f"evo-{ident[:8]}",status,json.dumps(report),now()));c.commit();c.close()
+        completed.append({"id":ident,"symbol":series["symbol"],"asset_class":series["asset_class"],"status":status,"result_path":str(output)})
+    audit("strategy.universe_evolved", "strategy_batch", str(uuid.uuid4()), {"count":len(completed),"asset_classes":body.asset_classes or sorted(SUPPORTED_ASSET_CLASSES)})
+    return {"mode":"RESEARCH_ONLY","series_processed":len(completed),"results":completed}

@@ -14,6 +14,8 @@ Local-first control plane for authorized property visualizations, Shopify/TikTok
 
 `POST /api/trading/import-bars` accepts a local folder of normalized price-bar CSV files named `SYMBOL__stock.csv`, `SYMBOL__etf.csv`, or `SYMBOL__crypto.csv`. Each file requires `timestamp,close` and at least 90 rows. `POST /api/trading/evolve` evolves a default population of 512 parameterized research agents on only the first 60% of each series, evaluates the winner on the next 20%, and reports final held-out performance on the last 20% after fees and slippage.
 
+`POST /api/trading/evolve-universe` applies the same isolated workflow to every imported series, optionally filtered by asset class. It writes a separate versioned experiment per instrument; a winning result is never pooled into another asset class and is never a trade authorization.
+
 The local model may analyze journals and market context, but cannot modify risk limits, the data partitions, promotion criteria, allocation, or order permissions. A successful candidate is only a `PAPER_CANDIDATE`; no endpoint in this research component talks to Robinhood or creates an order.
 
 Read [INTEGRATIONS.md](INTEGRATIONS.md) before connecting an external account; the repository intentionally contains no credentials.
