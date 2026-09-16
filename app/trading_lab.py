@@ -108,3 +108,16 @@ def save_result(directory: Path, symbol: str, result: dict) -> Path:
     destination = directory / f"{symbol.upper()}-evolution.json"
     destination.write_text(json.dumps(result, indent=2))
     return destination
+
+
+def current_signal(closes: np.ndarray, candidate: Candidate) -> str:
+    """Return a deterministic long/flat decision from the latest completed price bar."""
+    if len(closes) <= candidate.slow + 1:
+        return "flat"
+    returns = np.diff(closes) / closes[:-1]
+    window = returns[-candidate.slow:]
+    fast_mean = float(np.mean(window[-candidate.fast:]))
+    baseline = float(np.mean(window))
+    deviation = float(np.std(window)) or 1e-9
+    z = (fast_mean - baseline) / deviation
+    return "long" if z >= candidate.entry_z else "flat"

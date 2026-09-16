@@ -17,7 +17,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 from app.integrations import commerce_configuration, readiness
-from app.trading_lab import SUPPORTED_ASSET_CLASSES, evolve, load_bars, manifest_entry, save_result
+from app.trading_lab import Candidate, SUPPORTED_ASSET_CLASSES, current_signal, evolve, load_bars, manifest_entry, save_result
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("ASTRA_DATA_DIR", ROOT / "data"))
@@ -55,6 +55,9 @@ def init_db() -> None:
     create table if not exists trades (id text primary key, mode text, symbol text, side text, quantity real, price real, status text, idempotency_key text unique, created_at text);
     create table if not exists market_series (symbol text primary key, asset_class text, path text, sha256 text, rows integer, imported_at text);
     create table if not exists strategies (id text primary key, symbol text, asset_class text, version text, status text, report text, created_at text);
+    create table if not exists bots (id text primary key, strategy_id text unique, role text, status text, symbol text, created_at text, updated_at text);
+    create table if not exists market_cache (id text primary key, reader_bot_id text, symbol text, snapshot text, created_at text, position_id text);
+    create table if not exists paper_positions (id text primary key, bot_id text, symbol text, quantity real, entry_price real, status text, cache_id text, opened_at text, closed_at text, exit_price real, pnl_cents integer);
     """)
     defaults = {"emergency_stop": "false", "trading_mode": "PAPER", "live_trading_allowed": "false", "external_writes_enabled": "false", "max_daily_loss_cents": "2500", "max_position_cents": "5000"}
     for key, value in defaults.items():
@@ -122,6 +125,17 @@ class UniverseEvolutionIn(BaseModel):
     seed: int = 7
     asset_classes: list[Literal["stock", "etf", "crypto"]] | None = None
 
+class BotIn(BaseModel):
+    strategy_id: str
+    role: Literal["market_reader", "trader"] = "trader"
+
+class SnapshotIn(BaseModel):
+    reader_bot_id: str
+    symbol: str
+
+class BotCycleIn(BaseModel):
+    notional_cents: int = Field(default=10000, gt=0, le=500000)
+
 
 @app.on_event("startup")
 def startup() -> None:
@@ -134,7 +148,7 @@ def home(): return FileResponse(STATIC / "index.html")
 @app.get("/api/system")
 def system():
     c = connect()
-    counts = {table: c.execute(f"select count(*) from {table}").fetchone()[0] for table in ("properties", "jobs", "leads", "creators", "payouts", "trades")}
+    counts = {table: c.execute(f"select count(*) from {table}").fetchone()[0] for table in ("properties", "jobs", "leads", "creators", "payouts", "trades", "market_series", "strategies", "bots", "paper_positions")}
     settings = {r["key"]: r["value"] for r in c.execute("select * from settings")}
     c.close()
     return {"counts": counts, "settings": settings, "ollama_configured": bool(os.getenv("ASTRA_OLLAMA_URL", "http://127.0.0.1:11434")), "external_writes_enabled": settings["external_writes_enabled"] == "true", "commerce": commerce_configuration(), "integrations": [item.__dict__ for item in readiness()]}
@@ -330,3 +344,60 @@ def list_strategies(symbol: str | None = None, status: str | None = None):
         item=dict(row); report=json.loads(item.pop("report")); item["summary"]={key:report.get(key) for key in ("mode","promoted_to_paper_candidate","validation","test","cost_model")}; rows.append(item)
     c.close()
     return {"mode":"RESEARCH_ONLY","strategies":rows}
+
+@app.post("/api/trading/bots")
+def select_bot(body: BotIn):
+    """Select a proven research candidate for PAPER-only lifecycle control."""
+    c=connect(); strategy=c.execute("select * from strategies where id=?", (body.strategy_id,)).fetchone()
+    if not strategy: c.close(); raise HTTPException(404, "Strategy does not exist")
+    if strategy["status"] != "PAPER_CANDIDATE": c.close(); raise HTTPException(400, "Only held-out paper candidates can be selected")
+    if body.role == "market_reader":
+        current=c.execute("select id from bots where role='market_reader' and status='ACTIVE'").fetchone()
+        if current: c.execute("update bots set status='INACTIVE',updated_at=? where id=?",(now(),current["id"]))
+    ident=str(uuid.uuid4())
+    try: c.execute("insert into bots values (?,?,?,?,?,?,?)",(ident,body.strategy_id,body.role,"ACTIVE",strategy["symbol"],now(),now()));c.commit()
+    except sqlite3.IntegrityError: c.close(); raise HTTPException(409,"Strategy is already assigned to a bot")
+    c.close(); audit("bot.selected","bot",ident,{"strategy_id":body.strategy_id,"role":body.role,"mode":"PAPER"})
+    return {"id":ident,"role":body.role,"symbol":strategy["symbol"],"mode":"PAPER","status":"ACTIVE"}
+
+@app.get("/api/trading/bots")
+def list_bots():
+    c=connect(); rows=[dict(row) for row in c.execute("select * from bots order by created_at desc")]; c.close()
+    return {"mode":"PAPER","bots":rows}
+
+@app.post("/api/trading/market-snapshots")
+def request_market_snapshot(body: SnapshotIn):
+    """The chosen reader bot publishes one locally persisted snapshot from imported price bars."""
+    c=connect(); bot=c.execute("select * from bots where id=?",(body.reader_bot_id,)).fetchone()
+    series=c.execute("select * from market_series where symbol=?",(body.symbol.upper(),)).fetchone(); c.close()
+    if not bot or bot["role"] != "market_reader" or bot["status"] != "ACTIVE": raise HTTPException(400,"An active market-reader bot is required")
+    if not series: raise HTTPException(404,"Import market bars for the symbol first")
+    bars=load_bars(Path(series["path"])); latest=bars[-1]; previous=bars[-2]
+    snapshot={"symbol":series["symbol"],"asset_class":series["asset_class"],"timestamp":latest["timestamp"],"close":latest["close"],"change":latest["close"]/previous["close"]-1,"source":"local_normalized_market_bars","requested_by":bot["id"]}
+    ident=str(uuid.uuid4()); c=connect(); c.execute("insert into market_cache values (?,?,?,?,?,?)",(ident,bot["id"],series["symbol"],json.dumps(snapshot),now(),None));c.commit();c.close()
+    audit("market_snapshot.cached","market_cache",ident,{"symbol":series["symbol"],"reader_bot_id":bot["id"]})
+    return {"id":ident,"snapshot":snapshot,"retention":"deleted when linked position closes"}
+
+@app.post("/api/trading/bots/{bot_id}/cycle")
+def bot_cycle(bot_id: str, body: BotCycleIn):
+    """Open/monitor/close a simulated paper position using the latest reader snapshot."""
+    if setting("emergency_stop") == "true": raise HTTPException(423,"Emergency stop is active")
+    c=connect(); bot=c.execute("select * from bots where id=?",(bot_id,)).fetchone()
+    if not bot or bot["role"] != "trader" or bot["status"] != "ACTIVE": c.close(); raise HTTPException(400,"An active trader bot is required")
+    strategy=c.execute("select * from strategies where id=?",(bot["strategy_id"],)).fetchone()
+    open_position=c.execute("select * from paper_positions where bot_id=? and status='OPEN'",(bot_id,)).fetchone()
+    cache=c.execute("select * from market_cache where symbol=? order by created_at desc limit 1",(bot["symbol"],)).fetchone()
+    if not strategy or not cache: c.close(); raise HTTPException(409,"Strategy and current reader snapshot are required")
+    series=c.execute("select * from market_series where symbol=?",(bot["symbol"],)).fetchone(); c.close()
+    bars=load_bars(Path(series["path"])); closes=np.array([row["close"] for row in bars],dtype=float)
+    candidate=Candidate(**json.loads(strategy["report"])["candidate"]); signal=current_signal(closes,candidate); price=float(json.loads(cache["snapshot"])["close"])
+    if not open_position and signal == "long":
+        quantity=round(body.notional_cents/100/price,8); ident=str(uuid.uuid4()); c=connect(); c.execute("insert into paper_positions values (?,?,?,?,?,?,?,?,?,?,?)",(ident,bot_id,bot["symbol"],quantity,price,"OPEN",cache["id"],now(),None,None,None));c.execute("update market_cache set position_id=? where id=?",(ident,cache["id"]));c.commit();c.close();audit("paper_position.opened","paper_position",ident,{"bot_id":bot_id,"cache_id":cache["id"],"signal":signal});return {"action":"OPENED_PAPER_POSITION","position_id":ident,"signal":signal,"cache_id":cache["id"]}
+    if open_position and signal == "flat":
+        pnl=round((price-float(open_position["entry_price"]))*float(open_position["quantity"])*100); c=connect();c.execute("update paper_positions set status='CLOSED',closed_at=?,exit_price=?,pnl_cents=? where id=?",(now(),price,pnl,open_position["id"]));c.execute("delete from market_cache where id=?",(open_position["cache_id"],));c.commit();c.close();audit("paper_position.closed","paper_position",open_position["id"],{"bot_id":bot_id,"pnl_cents":pnl,"cache_deleted":True});return {"action":"CLOSED_PAPER_POSITION","position_id":open_position["id"],"pnl_cents":pnl,"cache_deleted":True}
+    return {"action":"MONITORING","signal":signal,"position_id":open_position["id"] if open_position else None,"mode":"PAPER"}
+
+@app.get("/api/trading/positions")
+def list_paper_positions():
+    c=connect(); rows=[dict(row) for row in c.execute("select * from paper_positions order by opened_at desc")]; c.close()
+    return {"mode":"PAPER","positions":rows}

@@ -18,6 +18,8 @@ Local-first control plane for authorized property visualizations, Shopify/TikTok
 
 The local model may analyze journals and market context, but cannot modify risk limits, the data partitions, promotion criteria, allocation, or order permissions. A successful candidate is only a `PAPER_CANDIDATE`; no endpoint in this research component talks to Robinhood or creates an order.
 
+The dashboard now supports selecting qualified strategies as paper bots. One selected `market_reader` bot can cache a latest normalized price snapshot locally; trader bots use that snapshot to open, monitor, and close paper positions. When a paper position closes, its linked market-cache record is permanently deleted while the position event remains in the audit trail.
+
 Read [INTEGRATIONS.md](INTEGRATIONS.md) before connecting an external account; the repository intentionally contains no credentials.
 
 ## Run
