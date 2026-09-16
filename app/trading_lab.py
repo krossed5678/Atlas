@@ -41,12 +41,15 @@ def load_bars(path: Path) -> list[dict]:
 def strategy_returns(closes: np.ndarray, candidate: Candidate, fee_bps: float, slippage_bps: float) -> np.ndarray:
     returns = np.diff(closes) / closes[:-1]
     signal = np.zeros(len(returns))
-    for index in range(candidate.slow, len(returns)):
-        window = returns[index - candidate.slow:index]
-        fast_mean = float(np.mean(window[-candidate.fast:]))
-        baseline = float(np.mean(window))
-        deviation = float(np.std(window)) or 1e-9
-        z = (fast_mean - baseline) / deviation
+    # Prefix sums replace repeated NumPy slices/means/stds for every candidate.
+    cumulative=np.concatenate(([0.0],np.cumsum(returns)))
+    cumulative_sq=np.concatenate(([0.0],np.cumsum(returns*returns)))
+    indexes=np.arange(candidate.slow,len(returns))
+    baseline=(cumulative[indexes]-cumulative[indexes-candidate.slow])/candidate.slow
+    fast=(cumulative[indexes]-cumulative[indexes-candidate.fast])/candidate.fast
+    variance=np.maximum(1e-18,(cumulative_sq[indexes]-cumulative_sq[indexes-candidate.slow])/candidate.slow-baseline*baseline)
+    z_scores=(fast-baseline)/np.sqrt(variance)
+    for index,z in zip(indexes,z_scores):
         signal[index] = 1.0 if z >= candidate.entry_z else (0.0 if z <= candidate.exit_z else signal[index - 1])
     turnover = np.abs(np.diff(signal, prepend=0.0))
     costs = turnover * (fee_bps + slippage_bps) / 10_000
@@ -69,7 +72,7 @@ def score(candidate: Candidate, closes: np.ndarray, fee_bps: float, slippage_bps
     return float(report["sharpe"] + report["total_return"] * 2 + report["max_drawdown"] * 3), report
 
 
-def evolve(closes: np.ndarray, population_size: int = 512, generations: int = 20, seed: int = 7, fee_bps: float = 5, slippage_bps: float = 5) -> dict:
+def evolve(closes: np.ndarray, population_size: int = 512, generations: int = 20, seed: int = 7, fee_bps: float = 5, slippage_bps: float = 5, patience: int = 5) -> dict:
     """Evolve a reproducible population on train only; validate/test are held out."""
     if population_size < 8 or generations < 1:
         raise ValueError("population_size >= 8 and generations >= 1")
@@ -78,10 +81,17 @@ def evolve(closes: np.ndarray, population_size: int = 512, generations: int = 20
     train, validation, test = closes[:train_end], closes[train_end:validation_end], closes[validation_end:]
     population = [Candidate(randomizer.randint(3, 15), randomizer.randint(20, 80), round(randomizer.uniform(.1, 2.0), 2), round(randomizer.uniform(-2.0, -.05), 2)) for _ in range(population_size)]
     history=[]
+    best_seen=-float("inf"); stagnant=0
     for generation in range(generations):
         ranked = sorted(((score(c, train, fee_bps, slippage_bps)[0], c) for c in population), reverse=True, key=lambda item:item[0])
         parents = [candidate for _, candidate in ranked[:max(4, population_size // 8)]]
         history.append({"generation": generation + 1, "best_train_score": ranked[0][0]})
+        if ranked[0][0] > best_seen + 1e-9: best_seen=ranked[0][0];stagnant=0
+        else: stagnant += 1
+        if stagnant >= patience:
+            history[-1]["early_stop"]="no_train_improvement"
+            population=[candidate for _,candidate in ranked]
+            break
         next_population = parents[:]
         while len(next_population) < population_size:
             parent = randomizer.choice(parents)
@@ -94,7 +104,7 @@ def evolve(closes: np.ndarray, population_size: int = 512, generations: int = 20
     _, validation_metrics = score(champion, validation, fee_bps, slippage_bps)
     _, test_metrics = score(champion, test, fee_bps, slippage_bps)
     promoted = bool(validation_metrics["sharpe"] > 0 and test_metrics["sharpe"] > 0 and validation_metrics["max_drawdown"] >= -.20 and test_metrics["max_drawdown"] >= -.20)
-    return {"candidate": asdict(champion), "training": train_metrics, "validation": validation_metrics, "test": test_metrics, "train_score": train_score, "promoted_to_paper_candidate": promoted, "history": history, "data_partitions": {"train": [0, train_end], "validation": [train_end, validation_end], "test": [validation_end, len(closes)]}, "cost_model": {"fee_bps": fee_bps, "slippage_bps": slippage_bps}}
+    return {"candidate": asdict(champion), "training": train_metrics, "validation": validation_metrics, "test": test_metrics, "train_score": train_score, "promoted_to_paper_candidate": promoted, "history": history, "data_partitions": {"train": [0, train_end], "validation": [train_end, validation_end], "test": [validation_end, len(closes)]}, "cost_model": {"fee_bps": fee_bps, "slippage_bps": slippage_bps},"efficiency":{"requested_generations":generations,"executed_generations":len(history),"early_stop_patience":patience,"rolling_statistics":"prefix_sum_vectorized"}}
 
 
 def manifest_entry(path: Path, asset_class: str, symbol: str) -> dict:

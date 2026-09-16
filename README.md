@@ -28,6 +28,10 @@ Property jobs now calculate image dimensions, edge density, perspective line seg
 
 One click now produces a finished 1080p luxury landscape promo or a 1080×1920 vertical TikTok promo. The editor creates a CV-ranked shot sequence, alternating slow push/pull/drift movement, subtle warm color finishing, sharpening, fades, and motion cross-dissolves. It uses only the supplied photographs and does not invent property features. Music is deliberately omitted unless you provide a licensed track.
 
+## Local Efficiency Defaults
+
+Vision inputs are JPEG-compressed and capped at a 1024-pixel edge before reaching Qwen; JSON outputs are cached per compact-image fingerprint. Ollama uses a 2048-token context, 600-token output ceiling, and unloads after each scheduled task by default to free RAM/VRAM. The research engine uses prefix-sum rolling statistics and early stopping to reduce CPU work during large bot populations.
+
 Read [INTEGRATIONS.md](INTEGRATIONS.md) before connecting an external account; the repository intentionally contains no credentials.
 
 ## Run

@@ -43,7 +43,7 @@ def process_one() -> dict | None:
         if health.get("model_present") and images:
             for item, image in zip(cv_images,images):
                 if "error" in item: continue
-                try: item["analysis"] = local_analysis(image)
+                try: item["analysis"] = local_analysis(image, property_root / "analysis" / "model_cache")
                 except Exception as exc: item["analysis_error"] = str(exc)
             result["status"] = "analyzed"
         successful=[item for item in cv_images if "computer_vision" in item]

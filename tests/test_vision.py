@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 
 from app.main import PROPERTIES
+from app.analysis import compact_image
 from app.vision import image_features, reconstruction_score
 from app.worker import process_one
 
@@ -32,3 +33,14 @@ def test_worker_persists_cv_outputs_without_model(tmp_path, monkeypatch):
     assert result['status'] == 'cv_analyzed_awaiting_model'
     assert (root/'analysis'/'camera_estimates.json').is_file()
     assert (root/'analysis'/'material_estimates.json').is_file()
+
+def test_compact_vision_input_respects_edge_budget(tmp_path, monkeypatch):
+    image=np.full((1800,3000,3),120,dtype=np.uint8); path=tmp_path/'large.jpg';cv2.imwrite(str(path),image)
+    monkeypatch.setenv('ASTRA_OLLAMA_MAX_IMAGE_EDGE','512')
+    encoded, fingerprint=compact_image(path)
+    import base64
+    from PIL import Image
+    import io
+    with Image.open(io.BytesIO(base64.b64decode(encoded))) as compacted:
+        assert max(compacted.size) == 512
+    assert len(fingerprint) == 64
