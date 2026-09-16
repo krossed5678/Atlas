@@ -2,6 +2,8 @@
 
 Last updated: 2026-09-16
 
+Repository: https://github.com/krossed5678/Atlas.git (`main`, initial commit `4392e9d`)
+
 ## BUILT AND VERIFIED
 
 - Python 3.12 virtual environment and pinned FastAPI application dependencies installed.
@@ -11,6 +13,7 @@ Last updated: 2026-09-16
 - FFmpeg installer reported success; a fresh terminal session is required for its command alias to appear on PATH.
 - Blender 5.2.1 installation and headless scene-file smoke test passed.
 - `ASTRA Local Safe Worker` is registered to run local queued work every 15 minutes; it contains no external write path.
+- Git repository initialized and pushed to GitHub; secrets, logs, database state, model files, and virtual environment are excluded.
 
 ## BUILT BUT NOT VERIFIED
 
@@ -31,10 +34,11 @@ Last updated: 2026-09-16
 ## NEXT BUILD CHECKPOINTS
 
 - [ ] Finish verifying Python, Ollama, Blender, FFmpeg, Node, and Git installations.
-- [ ] Finish background pull and smoke-test `qwen3-vl:4b` (download in progress).
+- [ ] Finish resumed background pull and smoke-test `qwen3-vl:4b` (the first pull reset at 67%; resume is active).
 - [x] Install dependencies and run initial safety suite (2 passed).
 - [ ] Restart/open a fresh terminal, verify the completed Ollama 0.34.1 installation, and pull/smoke-test `qwen3-vl:4b`.
 - [ ] Complete and verify the still-running Blender installation; verify FFmpeg, Node, and Git command paths in a fresh terminal.
 - [ ] Connect model-backed analysis to queued worker, then run an owner-authorized image end-to-end job after model verification.
 - [ ] Add Shopify/TikTok sync, Stripe payout, mailbox, OpenAI, and Robinhood official adapters after credentials/authorization.
+- [ ] Install the supported browser automation runtime after user confirmation, then open Robinhood's official Agentic connection page for user sign-in and approval.
 - [x] Enable and verify the Windows scheduled safe worker.
