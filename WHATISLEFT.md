@@ -10,7 +10,8 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - Blender 5.2.1 headless scene-file smoke test passed. FFmpeg installation reported success.
 - Ollama 0.34.1 and `qwen3-vl:4b` are installed. The model lives at `C:\Users\koanr\.ollama\models`; a real local synthetic-room vision run returned structured room, camera, material, object, confidence, and uncertainty JSON.
 - User-supplied photo folders can be imported into the per-property project structure and queued for analysis. Upload intake is also available in the dashboard.
-- Ten automated safe-mode tests pass: capital allocation, emergency stop, contract validation, duplicate ledger/lead/order handling, refund allocation reduction, live-gate rejection, local folder intake, default commerce selection, held-out evolutionary research, multi-asset universe batch evolution, and the reader-bot/cache/position-close deletion lifecycle.
+- OpenCV and scikit-image computer vision are installed and used by the queued property worker for perspective-line, image-quality, color/material evidence, and reference/render scoring. Qwen analysis is layered on top of those measurements.
+- Eleven automated safe-mode tests pass: capital allocation, emergency stop, contract validation, duplicate ledger/lead/order handling, refund allocation reduction, live-gate rejection, local folder intake, default commerce selection, held-out evolutionary research, multi-asset universe batch evolution, reader-bot/cache/position-close deletion, and computer-vision render scoring.
 - Local evolutionary Trading Lab is implemented for normalized stock, ETF, and crypto price bars. It evolves 512 parameterized research agents by default, models fees/slippage, enforces train/validation/test separation, stores versioned per-instrument reports, and can promote only to a paper candidate.
 - Paper bot dashboard and lifecycle are implemented: select a held-out candidate, designate one market reader, cache a local snapshot, open/monitor/close simulated positions, and permanently delete the cache attached to a closed position.
 - The configured default Shopify store is `x6qufc-nh.myshopify.com` (USD, EDT). Plan: trial — you'll need to upgrade before you can start selling and unlock full features
@@ -31,7 +32,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 
 - A local OpenAI API key, mailbox OAuth authorization, TikTok Shop/business app authorization, and the appropriate Shopify Admin app/access token for the local service.
 - Stripe Connect live-mode activation requires Kofi Rossi live-mode selection, Connect platform configuration, connected-creator onboarding, tax/legal review, webhook endpoint registration, and a specific payout approval. Test mode is selected now; no payout was created.
-- Shopify must leave trial status before live selling, live orders, or fulfillment can be verified.
+- Shopify stays on its current trial at your direction. Shopify live selling/order verification is deferred; TikTok Shop can be the first commerce path once its business authorization and catalog/fulfillment configuration are connected.
 - Robinhood stock/options automation requires a separate explicit live-order instruction per order and any product-level authorization Robinhood requires. The verified Agentic MCP connection does not unlock ASTRA's hard gate.
 
 ## NOT POSSIBLE WITH CURRENT INTEGRATIONS

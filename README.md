@@ -20,6 +20,10 @@ The local model may analyze journals and market context, but cannot modify risk 
 
 The dashboard now supports selecting qualified strategies as paper bots. One selected `market_reader` bot can cache a latest normalized price snapshot locally; trader bots use that snapshot to open, monitor, and close paper positions. When a paper position closes, its linked market-cache record is permanently deleted while the position event remains in the audit trail.
 
+## Computer Vision Property Analysis
+
+Property jobs now calculate image dimensions, edge density, perspective line segments, horizontal/vertical evidence, brightness, saturation, color signals, and uncertainty before sending the image to the local Qwen vision model. `reconstruction_score` compares a Blender render against a reference using structural similarity, edge overlap, and color similarity. These are measurement aids, not guarantees of architectural accuracy.
+
 Read [INTEGRATIONS.md](INTEGRATIONS.md) before connecting an external account; the repository intentionally contains no credentials.
 
 ## Run

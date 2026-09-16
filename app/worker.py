@@ -10,6 +10,7 @@ import httpx
 
 from .main import DATA, PROPERTIES, audit, init_db, now
 from .analysis import local_analysis
+from .vision import image_features
 
 DB = DATA / "astra.db"
 
@@ -35,7 +36,7 @@ def process_one() -> dict | None:
         images = sorted((PROPERTIES / job["entity_id"] / "source" / "original_images").glob("*"))
         result = {"status": "awaiting_model" if not health.get("model_present") else "model_ready", "model_health": health, "generated_at": now(), "uncertainty": "Human/Astra review is required before any reconstruction is approved."}
         if health.get("model_present") and images:
-            result["images"] = [{"image": image.name, "analysis": local_analysis(image)} for image in images]
+            result["images"] = [{"image": image.name, "computer_vision": image_features(image), "analysis": local_analysis(image)} for image in images]
             result["status"] = "analyzed"
         (base / "room_classification.json").write_text(json.dumps(result, indent=2))
         c.execute("update jobs set status='completed', checkpoint='analysis_placeholder_complete', updated_at=? where id=?", (now(), job["id"])); c.commit()
