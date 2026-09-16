@@ -7,6 +7,8 @@
 3. Store no Robinhood username or password in this project.
 4. Keep `live_trading_allowed=false`; the platform produces a reviewable, idempotent order handoff only.
 
+Browser status: BrowserAct 1.4.2 is installed and Robinhood’s official Agentic guidance was opened. Creating the MCP connection is intentionally waiting for the user’s action-time confirmation because it creates persistent access to brokerage account data and potential Agentic-account trading access.
+
 ## Shopify and TikTok Shop
 
 Supply an Admin API access token and TikTok Shop app credentials via environment variables. The application must first pass read-only health and webhook signature tests. Publishing stays disabled unless a calendar item has explicit approval.
