@@ -6,7 +6,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 
 ## BUILT AND VERIFIED
 
-- Python 3.12, FastAPI, SQLite persistence, immutable audit events, local dashboard, emergency stop, and the 15-minute `ASTRA Local Safe Worker` are installed and working locally.
+- Python 3.12, FastAPI, SQLite persistence, immutable audit events, local dashboard, emergency stop, and the 15-minute `ASTRA Local Safe Worker` are installed and working locally. The worker runs as a hidden background scheduled task, logs to `data/logs/scheduled-worker.log`, and does not attach to interactive/fullscreen terminals.
 - Blender 5.2.1 headless scene-file smoke test passed. FFmpeg installation reported success.
 - Ollama 0.34.1 and `qwen3-vl:4b` are installed. The model lives at `C:\Users\koanr\.ollama\models`; a real local synthetic-room vision run returned structured room, camera, material, object, confidence, and uncertainty JSON.
 - User-supplied photo folders can be imported into the per-property project structure and queued for analysis. Upload intake is also available in the dashboard.
