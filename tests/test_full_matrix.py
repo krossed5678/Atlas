@@ -1,9 +1,6 @@
-import os, shutil, uuid
-os.environ['ASTRA_DATA_DIR']='/tmp/astra-test'
 from fastapi.testclient import TestClient
-from app.main import app, init_db
+from app.main import app
 client=TestClient(app)
-def setup_function(): shutil.rmtree('/tmp/astra-test',ignore_errors=True);init_db()
 def test_duplicate_ledger_and_refund_reduces_capital():
     assert client.post('/api/ledger',json={'kind':'revenue','amount_cents':40000,'reference_id':'r'}).status_code==200
     assert client.post('/api/ledger',json={'kind':'revenue','amount_cents':40000,'reference_id':'r'}).status_code==409
@@ -19,3 +16,15 @@ def test_duplicate_trade_and_live_gate():
     assert client.post('/api/trades',json=x).status_code==200
     assert client.post('/api/trades',json=x).status_code==409
     x['idempotency_key']='live';x['mode']='LIVE_READY_HANDOFF';assert client.post('/api/trades',json=x).status_code==403
+
+def test_folder_photo_set_import(tmp_path):
+    sample=tmp_path/'photos'; sample.mkdir(); (sample/'room.jpg').write_bytes(b'not-a-real-image-but-valid-intake-file')
+    result=client.post('/api/properties/import-folder',json={'folder_path':str(sample)})
+    assert result.status_code==200 and result.json()['image_count']==1
+
+def test_default_commerce_selection_is_safe():
+    system = client.get('/api/system').json()
+    assert system['commerce']['shopify_store'] == 'x6qufc-nh.myshopify.com'
+    assert system['commerce']['stripe_context'] == 'acct_1SPAFpI0vp8qwDso'
+    assert system['commerce']['stripe_livemode'] is False
+    assert system['commerce']['creator_payouts'] == 'human_approval_required'

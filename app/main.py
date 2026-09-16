@@ -14,6 +14,7 @@ from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
+from app.integrations import commerce_configuration, readiness
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA = Path(os.getenv("ASTRA_DATA_DIR", ROOT / "data"))
@@ -31,7 +32,7 @@ def now() -> str:
 
 def connect() -> sqlite3.Connection:
     DATA.mkdir(parents=True, exist_ok=True)
-    c = sqlite3.connect(DB)
+    c = sqlite3.connect(DB, timeout=10)
     c.row_factory = sqlite3.Row
     return c
 
@@ -97,6 +98,10 @@ class TradeIn(BaseModel):
     mode: Literal["RESEARCH", "PAPER", "SHADOW", "LIVE_READY_HANDOFF"] = "PAPER"
     idempotency_key: str
 
+class FolderImportIn(BaseModel):
+    folder_path: str
+    listing_url: str = ""
+
 
 @app.on_event("startup")
 def startup() -> None:
@@ -112,7 +117,7 @@ def system():
     counts = {table: c.execute(f"select count(*) from {table}").fetchone()[0] for table in ("properties", "jobs", "leads", "creators", "payouts", "trades")}
     settings = {r["key"]: r["value"] for r in c.execute("select * from settings")}
     c.close()
-    return {"counts": counts, "settings": settings, "ollama_configured": bool(os.getenv("ASTRA_OLLAMA_URL", "http://127.0.0.1:11434")), "external_writes_enabled": settings["external_writes_enabled"] == "true"}
+    return {"counts": counts, "settings": settings, "ollama_configured": bool(os.getenv("ASTRA_OLLAMA_URL", "http://127.0.0.1:11434")), "external_writes_enabled": settings["external_writes_enabled"] == "true", "commerce": commerce_configuration(), "integrations": [item.__dict__ for item in readiness()]}
 
 @app.post("/api/system/emergency-stop")
 def emergency_stop():
@@ -126,7 +131,7 @@ def resume():
 
 @app.post("/api/properties")
 async def create_property(listing_url: str = Form(""), files: list[UploadFile] = File(...)):
-    if not files: raise HTTPException(400, "At least one owner-authorized image is required")
+    if not files: raise HTTPException(400, "At least one image is required")
     digest = hashlib.sha256((listing_url + "|" + "|".join(f.filename or "" for f in files)).encode()).hexdigest()
     c = connect(); prior = c.execute("select id from properties where listing_hash=?", (digest,)).fetchone()
     if prior: c.close(); raise HTTPException(409, f"Duplicate property: {prior['id']}")
@@ -146,13 +151,31 @@ async def create_property(listing_url: str = Form(""), files: list[UploadFile] =
     for name in ("image_metadata.json", "room_classification.json", "camera_estimates.json", "geometry_estimates.json", "material_estimates.json"):
         (base / "analysis" / name).write_text(json.dumps({"status": "pending_local_or_astra_analysis", "confidence": 0}, indent=2))
     c.execute("insert into properties values (?,?,?,?,?,?,?)", (pid, listing_url, digest, "INTAKE_COMPLETE", now(), saved, 0))
-    jid = str(uuid.uuid4()); c.execute("insert into jobs values (?,?,?,?,?,?,?,?)", (jid, "property_analysis", pid, "queued", "intake", 0, None, now(), now())); c.commit(); c.close()
+    jid = str(uuid.uuid4()); c.execute("insert into jobs values (?,?,?,?,?,?,?,?,?)", (jid, "property_analysis", pid, "queued", "intake", 0, None, now(), now())); c.commit(); c.close()
     audit("property.intake", "property", pid, metadata)
     return {"id": pid, "job_id": jid, "status": "INTAKE_COMPLETE"}
 
 @app.get("/api/properties")
 def list_properties():
     c = connect(); rows=[dict(r) for r in c.execute("select * from properties order by created_at desc")]; c.close(); return rows
+
+@app.post("/api/properties/import-folder")
+def import_property_folder(body: FolderImportIn):
+    """Copy a user-selected local image folder into a persistent property project and queue analysis."""
+    source = Path(body.folder_path).expanduser().resolve()
+    if not source.is_dir(): raise HTTPException(400, "Folder does not exist")
+    images = [p for p in source.iterdir() if p.is_file() and p.suffix.lower() in {'.jpg','.jpeg','.png','.webp','.tif','.tiff'}]
+    if not images: raise HTTPException(400, "Folder contains no supported image files")
+    digest = hashlib.sha256((str(source) + "|" + "|".join(f"{p.name}:{p.stat().st_size}" for p in images)).encode()).hexdigest()
+    c = connect(); prior = c.execute("select id from properties where listing_hash=?", (digest,)).fetchone()
+    if prior: c.close(); raise HTTPException(409, f"Duplicate photo set: {prior['id']}")
+    pid=f"property_{uuid.uuid4().hex[:12]}"; base=PROPERTIES/pid
+    for rel in ("source/original_images","analysis","blender/assets","blender/textures","renders/reference_matches","renders/final_stills","video/shots","video/final","outreach/emails","logs"):(base/rel).mkdir(parents=True,exist_ok=True)
+    for index,image in enumerate(sorted(images)): shutil.copy2(image,base/"source/original_images"/f"{index:03d}{image.suffix.lower()}")
+    metadata={"property_id":pid,"listing_url":body.listing_url,"source_folder":str(source),"source_images":len(images),"created_at":now()}
+    (base/"source/metadata.json").write_text(json.dumps(metadata,indent=2))
+    for name in ("image_metadata.json","room_classification.json","camera_estimates.json","geometry_estimates.json","material_estimates.json"):(base/"analysis"/name).write_text(json.dumps({"status":"queued","confidence":0},indent=2))
+    c.execute("insert into properties values (?,?,?,?,?,?,?)",(pid,body.listing_url,digest,"INTAKE_COMPLETE",now(),len(images),0));jid=str(uuid.uuid4());c.execute("insert into jobs values (?,?,?,?,?,?,?,?,?)",(jid,"property_analysis",pid,"queued","folder_intake",0,None,now(),now()));c.commit();c.close();audit("property.folder_import","property",pid,metadata);return {"id":pid,"job_id":jid,"image_count":len(images)}
 
 @app.post("/api/leads")
 def create_lead(body: LeadIn):

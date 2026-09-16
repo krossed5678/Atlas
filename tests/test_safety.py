@@ -1,17 +1,7 @@
-import os
-import shutil
-import pytest
-os.environ['ASTRA_DATA_DIR'] = '/tmp/astra-test'
 from fastapi.testclient import TestClient
-from app.main import app, init_db
+from app.main import app
 
 client=TestClient(app)
-@pytest.fixture(autouse=True)
-def isolated_database():
-    shutil.rmtree('/tmp/astra-test', ignore_errors=True)
-    init_db()
-    yield
-    shutil.rmtree('/tmp/astra-test', ignore_errors=True)
 def test_capital_boundary_and_stop():
     client.post('/api/ledger',json={'kind':'revenue','amount_cents':10000,'reference_id':'sale-1'})
     assert client.get('/api/ledger/capital').json()['available_trading_capital_cents']==2500

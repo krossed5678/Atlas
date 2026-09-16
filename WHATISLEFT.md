@@ -2,49 +2,51 @@
 
 Last updated: 2026-09-16
 
-Repository: https://github.com/krossed5678/Atlas.git (`main`, initial commit `4392e9d`)
+Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 
 ## BUILT AND VERIFIED
 
-- Python 3.12 virtual environment and pinned FastAPI application dependencies installed.
-- Automated safety suite passed: 2 tests covering realized-profit 25% allocation enforcement, over-allocation rejection, emergency stop, and incomplete creator contract rejection.
-- Expanded synthetic safety matrix passed: 5 tests covering duplicate ledger/order/lead rejection, opt-out, refunds reducing trading allocation, live-gate rejection, 25% allocation enforcement, and emergency-stop rejection.
-- Local dashboard server launched successfully at `http://127.0.0.1:8787`; its system-health endpoint was verified with external writes disabled and mode set to PAPER.
-- FFmpeg installer reported success; a fresh terminal session is required for its command alias to appear on PATH.
-- Blender 5.2.1 installation and headless scene-file smoke test passed.
-- Qwen3-VL 4B model pull completed and a real local synthetic-room vision inference returned structured JSON with room, camera, materials, object, confidence, and uncertainty fields.
-- `ASTRA Local Safe Worker` is registered to run local queued work every 15 minutes; it contains no external write path.
-- Git repository initialized and pushed to GitHub; secrets, logs, database state, model files, and virtual environment are excluded.
-- Ollama 0.34.1 and BrowserAct 1.4.2 are installed. Qwen model files are stored in `C:\Users\koanr\.ollama\models` and are currently downloading.
-- Robinhood's official `robinhood-trading` MCP is globally registered in Codex and OAuth is verified by one privacy-minimized read-only account check. ASTRA’s application-level live-trading gate remains false.
+- Python 3.12, FastAPI, SQLite persistence, immutable audit events, local dashboard, emergency stop, and the 15-minute `ASTRA Local Safe Worker` are installed and working locally.
+- Blender 5.2.1 headless scene-file smoke test passed. FFmpeg installation reported success.
+- Ollama 0.34.1 and `qwen3-vl:4b` are installed. The model lives at `C:\Users\koanr\.ollama\models`; a real local synthetic-room vision run returned structured room, camera, material, object, confidence, and uncertainty JSON.
+- User-supplied photo folders can be imported into the per-property project structure and queued for analysis. Upload intake is also available in the dashboard.
+- Seven automated safe-mode tests pass: capital allocation, emergency stop, contract validation, duplicate ledger/lead/order handling, refund allocation reduction, live-gate rejection, local folder intake, and default commerce selection.
+- The configured default Shopify store is `x6qufc-nh.myshopify.com` (USD, EDT). Plan: trial — you'll need to upgrade before you can start selling and unlock full features
+- Kofi Rossi Stripe account selection is recorded as `acct_1SPAFpI0vp8qwDso` in **test mode**. Creator money flow is configured conceptually as a Stripe Connect Accounts v2 marketplace recipient flow with separate charges/transfers and individual human approval for every payout.
+- Robinhood's official `robinhood-trading` MCP is registered in Codex. OAuth was approved and a privacy-minimized account check succeeded; no balances, positions, account numbers, or orders were recorded. ASTRA's live-trading gate remains locked.
+- Git repository is initialized and pushed. Secrets, model files, logs, database state, and virtual environments are excluded.
 
 ## BUILT BUT NOT VERIFIED
 
-- Local FastAPI dashboard, SQLite persistence, audit events, emergency stop, approval-safe state, property directory creator, authorized image intake, lead suppression, creator/contract schemas, ledger/capital boundary, paper-trade proposal controls, and checkpointed local worker.
-- Offline Blender, Ollama, TikTok Shop, Shopify, Stripe Connect, mailbox, OpenAI, and Robinhood adapters remain disabled until their runtime/authorization checks pass.
-- Blender scene builder, local Ollama structured-image analysis adapter, OpenAI high-fidelity image adapter, reference color-score function, and authorization-gated external adapter readiness checks.
+- Queue worker, local Qwen structured-analysis adapter, Blender starter scene builder, camera/material score scaffold, and reference-score scaffold.
+- Local dashboard schemas for leads, creators, contracts, payouts, ledgers, and paper/shadow trade proposals. External-write settings remain false.
+- Stripe Connect configuration hooks select the Kofi Rossi test account without embedding a secret. The implementation design uses Accounts v2 and does not use legacy connected-account types.
+- Shopify selection hook uses the connected default store. Live catalog/order synchronization has not been exercised from this local service.
+- OpenAI, TikTok Shop, mailbox, Stripe, and Robinhood adapters have safe readiness checks but are not yet end-to-end service integrations.
 
 ## REQUIRES YOUR AUTHORIZATION
 
-- OpenAI API key; mailbox OAuth; TikTok Shop/business app approval; Stripe Connect account and legal/tax validation; creator agreement approval; Robinhood Agentic/Crypto API authorization.
-- Shopify store upgrade from trial before live selling.
+- A local OpenAI API key, mailbox OAuth authorization, TikTok Shop/business app authorization, and the appropriate Shopify Admin app/access token for the local service.
+- Stripe Connect live-mode activation requires Kofi Rossi live-mode selection, Connect platform configuration, connected-creator onboarding, tax/legal review, webhook endpoint registration, and a specific payout approval. Test mode is selected now; no payout was created.
+- Shopify must leave trial status before live selling, live orders, or fulfillment can be verified.
+- Robinhood stock/options automation requires a separate explicit live-order instruction per order and any product-level authorization Robinhood requires. The verified Agentic MCP connection does not unlock ASTRA's hard gate.
 
 ## NOT POSSIBLE WITH CURRENT INTEGRATIONS
 
-- No protected Airbnb-media acquisition or CAPTCHA/access-control bypass.
-- No automatic Robinhood stock/options orders without explicit official Robinhood authorization.
+- A true 1:1 property reconstruction cannot be guaranteed from arbitrary photos; ASTRA reports measured scores and uncertainty instead.
+- Fully unattended creator payouts, public TikTok publishing, outbound email, or Robinhood orders are intentionally not possible: each requires the configured platform connection and a distinct approval action.
 
 ## NEXT BUILD CHECKPOINTS
 
-- [ ] Finish verifying Python, Ollama, Blender, FFmpeg, Node, and Git installations.
-- [x] Pull and smoke-test `qwen3-vl:4b` using a synthetic-room image.
-- [x] Install dependencies and run initial safety suite (2 passed).
-- [ ] Restart/open a fresh terminal, verify the completed Ollama 0.34.1 installation, and pull/smoke-test `qwen3-vl:4b`.
-- [ ] Complete and verify the still-running Blender installation; verify FFmpeg, Node, and Git command paths in a fresh terminal.
-- [ ] Connect model-backed analysis to queued worker, then run an owner-authorized image end-to-end job after model verification.
-- [ ] Add Shopify/TikTok sync, Stripe payout, mailbox, OpenAI, and Robinhood official adapters after credentials/authorization.
-- [ ] Install the supported browser automation runtime after user confirmation, then open Robinhood's official Agentic connection page for user sign-in and approval.
-- [x] Install BrowserAct and open Robinhood's official Agentic Trading guidance.
-- [x] Complete Robinhood’s official sign-in/MCP connection; credentials are stored only by Codex/Robinhood OAuth, never in ASTRA.
-- [ ] Restart/reload the desktop Codex task to make the newly registered Robinhood MCP directly available to this task’s tool registry; until then, verified read-only MCP checks run through the local Codex CLI.
-- [x] Enable and verify the Windows scheduled safe worker.
+- [x] Import user-supplied photo folders into persistent property projects.
+- [x] Pull and smoke-test `qwen3-vl:4b`.
+- [x] Install and smoke-test Blender.
+- [x] Register and verify Robinhood Agentic MCP with a privacy-minimized account read.
+- [x] Select Kofi Rossi Stripe test context and default Shopify store in non-secret configuration.
+- [ ] Run a complete photo-folder-to-Qwen-to-Blender still/render/video job using an actual supplied property folder.
+- [ ] Build and verify Shopify order/catalog webhooks, TikTok Shop sync, creator attribution, approved calendar publishing, and refund reconciliation.
+- [ ] Build and verify Stripe Connect test onboarding, webhook verification, creator statement generation, and payout-approval handoff; do not enable live mode until the live prerequisites above are complete.
+- [ ] Connect an approved mailbox and implement reviewed send/reply/bounce workflows.
+- [ ] Add and verify OpenAI high-fidelity property-analysis calls after an API key is present.
+- [ ] Expand the paper/shadow trading engine with real market-data adapters, historical partitions, strategy metrics, and Robinhood live-handoff packages.
+- [ ] Run the remaining synthetic matrix: corrupt/missing images, Blender restart, score regression, bounces, attribution conflicts, holdbacks, failed Stripe payout, unapproved post, stale data, partial fills, and circuit breakers.
