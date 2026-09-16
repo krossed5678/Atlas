@@ -38,3 +38,6 @@ def test_universe_evolution_processes_imported_asset_classes(tmp_path):
     assert result.status_code == 200
     body = result.json()
     assert body["mode"] == "RESEARCH_ONLY" and body["series_processed"] == 2
+    strategies = client.get("/api/trading/strategies", params={"status": "PAPER_CANDIDATE"}).json()
+    assert strategies["mode"] == "RESEARCH_ONLY"
+    assert all(item["summary"]["mode"] == "RESEARCH_ONLY" for item in strategies["strategies"])

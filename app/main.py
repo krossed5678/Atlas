@@ -316,3 +316,17 @@ def evolve_universe(body: UniverseEvolutionIn):
         completed.append({"id":ident,"symbol":series["symbol"],"asset_class":series["asset_class"],"status":status,"result_path":str(output)})
     audit("strategy.universe_evolved", "strategy_batch", str(uuid.uuid4()), {"count":len(completed),"asset_classes":body.asset_classes or sorted(SUPPORTED_ASSET_CLASSES)})
     return {"mode":"RESEARCH_ONLY","series_processed":len(completed),"results":completed}
+
+@app.get("/api/trading/strategies")
+def list_strategies(symbol: str | None = None, status: str | None = None):
+    query="select id,symbol,asset_class,version,status,created_at,report from strategies"
+    clauses=[]; values=[]
+    if symbol: clauses.append("symbol=?"); values.append(symbol.upper())
+    if status: clauses.append("status=?"); values.append(status.upper())
+    if clauses: query += " where " + " and ".join(clauses)
+    query += " order by created_at desc"
+    c=connect(); rows=[]
+    for row in c.execute(query, values):
+        item=dict(row); report=json.loads(item.pop("report")); item["summary"]={key:report.get(key) for key in ("mode","promoted_to_paper_candidate","validation","test","cost_model")}; rows.append(item)
+    c.close()
+    return {"mode":"RESEARCH_ONLY","strategies":rows}
