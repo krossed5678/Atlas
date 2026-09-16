@@ -15,6 +15,8 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - Cinematic photo-promo rendering is implemented and verified with FFmpeg: 1080p luxury landscape and TikTok vertical exports, CV-ranked shots, varied slow camera motion, warm color finishing, fades, motion transitions, MP4 generation, and one-click dashboard rendering. It uses supplied images only.
 - Local evolutionary Trading Lab is implemented for normalized stock, ETF, and crypto price bars. It evolves 512 parameterized research agents by default, models fees/slippage, enforces train/validation/test separation, stores versioned per-instrument reports, and can promote only to a paper candidate.
 - Paper bot dashboard and lifecycle are implemented: select a held-out candidate, designate one market reader, cache a local snapshot, open/monitor/close simulated positions, and permanently delete the cache attached to a closed position.
+- The dashboard is upgraded into dedicated Property Films, Market Research, Paper Bot Desk, TikTok Dropship Desk, Reviewed Outreach, and System Activity panels.
+- Reviewed email drafts now enforce suppression/opt-out checks and only advance to a non-sending approval handoff. TikTok dropship product drafts enforce positive margin, record supplier SKU/cost, and reject duplicate incoming orders.
 - The configured default Shopify store is `x6qufc-nh.myshopify.com` (USD, EDT). Plan: trial — you'll need to upgrade before you can start selling and unlock full features
 - Kofi Rossi Stripe account selection is recorded as `acct_1SPAFpI0vp8qwDso` in **test mode**. Creator money flow is configured conceptually as a Stripe Connect Accounts v2 marketplace recipient flow with separate charges/transfers and individual human approval for every payout.
 - Robinhood's official `robinhood-trading` MCP is registered in Codex. OAuth was approved and a privacy-minimized account check succeeded; no balances, positions, account numbers, or orders were recorded. ASTRA's live-trading gate remains locked.
@@ -23,7 +25,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 ## BUILT BUT NOT VERIFIED
 
 - Queue worker, local Qwen structured-analysis adapter, Blender starter scene builder, camera/material score scaffold, and reference-score scaffold.
-- Local dashboard schemas for leads, creators, contracts, payouts, ledgers, and paper/shadow trade proposals. External-write settings remain false.
+- Local dashboard schemas for leads, email drafts, creators, contracts, payouts, dropship product/order drafts, ledgers, and paper/shadow trade proposals. External-write settings remain false.
 - A Robinhood market-data ingestion adapter is not yet present. The Trading Lab accepts normalized local price bars now; the official Robinhood MCP is not used by this local service to fetch a whole-market universe.
 - Stripe Connect configuration hooks select the Kofi Rossi test account without embedding a secret. The implementation design uses Accounts v2 and does not use legacy connected-account types.
 - Shopify selection hook uses the connected default store. Live catalog/order synchronization has not been exercised from this local service.

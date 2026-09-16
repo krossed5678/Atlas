@@ -60,6 +60,9 @@ def init_db() -> None:
     create table if not exists bots (id text primary key, strategy_id text unique, role text, status text, symbol text, created_at text, updated_at text);
     create table if not exists market_cache (id text primary key, reader_bot_id text, symbol text, snapshot text, created_at text, position_id text);
     create table if not exists paper_positions (id text primary key, bot_id text, symbol text, quantity real, entry_price real, status text, cache_id text, opened_at text, closed_at text, exit_price real, pnl_cents integer);
+    create table if not exists email_drafts (id text primary key, lead_id text, subject text, body text, status text, created_at text, approved_at text);
+    create table if not exists dropship_products (id text primary key, title text, supplier_name text, supplier_sku text, cost_cents integer, sale_cents integer, status text, created_at text);
+    create table if not exists commerce_orders (id text primary key, product_id text, external_order_id text unique, quantity integer, status text, created_at text);
     """)
     defaults = {"emergency_stop": "false", "trading_mode": "PAPER", "live_trading_allowed": "false", "external_writes_enabled": "false", "max_daily_loss_cents": "2500", "max_position_cents": "5000"}
     for key, value in defaults.items():
@@ -142,6 +145,23 @@ class VideoIn(BaseModel):
     seconds_per_photo: float = Field(default=3.0, ge=1.0, le=12.0)
     format: Literal["landscape", "portrait"] = "landscape"
 
+class EmailDraftIn(BaseModel):
+    lead_id: str
+    subject: str = Field(min_length=3, max_length=180)
+    body: str = Field(min_length=10, max_length=8000)
+
+class DropshipProductIn(BaseModel):
+    title: str = Field(min_length=3, max_length=180)
+    supplier_name: str = Field(min_length=2, max_length=120)
+    supplier_sku: str = Field(min_length=1, max_length=120)
+    cost_cents: int = Field(ge=0)
+    sale_cents: int = Field(gt=0)
+
+class CommerceOrderIn(BaseModel):
+    product_id: str
+    external_order_id: str
+    quantity: int = Field(gt=0, le=1000)
+
 
 @app.on_event("startup")
 def startup() -> None:
@@ -154,7 +174,7 @@ def home(): return FileResponse(STATIC / "index.html")
 @app.get("/api/system")
 def system():
     c = connect()
-    counts = {table: c.execute(f"select count(*) from {table}").fetchone()[0] for table in ("properties", "jobs", "leads", "creators", "payouts", "trades", "market_series", "strategies", "bots", "paper_positions")}
+    counts = {table: c.execute(f"select count(*) from {table}").fetchone()[0] for table in ("properties", "jobs", "leads", "creators", "payouts", "trades", "market_series", "strategies", "bots", "paper_positions", "email_drafts", "dropship_products", "commerce_orders")}
     settings = {r["key"]: r["value"] for r in c.execute("select * from settings")}
     c.close()
     return {"counts": counts, "settings": settings, "ollama_configured": bool(os.getenv("ASTRA_OLLAMA_URL", "http://127.0.0.1:11434")), "external_writes_enabled": settings["external_writes_enabled"] == "true", "commerce": commerce_configuration(), "integrations": [item.__dict__ for item in readiness()]}
@@ -162,6 +182,28 @@ def system():
 @app.get("/api/commerce/tiktok/readiness")
 def tiktok_shop_readiness():
     return tiktok_readiness()
+
+@app.post("/api/commerce/tiktok/products")
+def create_dropship_product(body: DropshipProductIn):
+    if body.sale_cents <= body.cost_cents: raise HTTPException(400,"Sale price must exceed supplier cost")
+    ident=str(uuid.uuid4());c=connect();c.execute("insert into dropship_products values (?,?,?,?,?,?,?,?)",(ident,body.title,body.supplier_name,body.supplier_sku,body.cost_cents,body.sale_cents,"DRAFT",now()));c.commit();c.close();audit("dropship_product.drafted","dropship_product",ident,{"supplier":body.supplier_name,"sku":body.supplier_sku});return {"id":ident,"status":"DRAFT","publish_requires_tiktok_authorization":True}
+
+@app.get("/api/commerce/tiktok/products")
+def list_dropship_products():
+    c=connect();rows=[dict(row) for row in c.execute("select * from dropship_products order by created_at desc")];c.close();return rows
+
+@app.post("/api/commerce/orders")
+def record_commerce_order(body: CommerceOrderIn):
+    c=connect(); product=c.execute("select * from dropship_products where id=?",(body.product_id,)).fetchone()
+    if not product: c.close();raise HTTPException(404,"Product not found")
+    ident=str(uuid.uuid4())
+    try:c.execute("insert into commerce_orders values (?,?,?,?,?,?)",(ident,body.product_id,body.external_order_id,body.quantity,"PENDING_FULFILLMENT",now()));c.commit()
+    except sqlite3.IntegrityError:c.close();raise HTTPException(409,"Duplicate commerce order blocked")
+    c.close();audit("commerce_order.recorded","commerce_order",ident,{"product_id":body.product_id,"external_order_id":body.external_order_id});return {"id":ident,"status":"PENDING_FULFILLMENT","supplier_handoff":"NOT_SENT"}
+
+@app.get("/api/commerce/orders")
+def list_commerce_orders():
+    c=connect();rows=[dict(row) for row in c.execute("select * from commerce_orders order by created_at desc")];c.close();return rows
 
 @app.post("/api/system/emergency-stop")
 def emergency_stop():
@@ -243,6 +285,25 @@ def create_lead(body: LeadIn):
 @app.post("/api/leads/{lead_id}/opt-out")
 def opt_out(lead_id:str):
     c=connect(); c.execute("update leads set opted_out=1, stage='LOST' where id=?",(lead_id,)); c.commit(); c.close(); audit("lead.opted_out","lead",lead_id,{}); return {"ok":True}
+
+@app.post("/api/outreach/drafts")
+def create_email_draft(body: EmailDraftIn):
+    c=connect(); lead=c.execute("select * from leads where id=?",(body.lead_id,)).fetchone()
+    if not lead: c.close(); raise HTTPException(404,"Lead not found")
+    if lead["opted_out"]: c.close(); raise HTTPException(403,"Suppressed lead cannot receive a draft")
+    ident=str(uuid.uuid4());c.execute("insert into email_drafts values (?,?,?,?,?,?,?)",(ident,body.lead_id,body.subject,body.body,"PENDING_APPROVAL",now(),None));c.commit();c.close();audit("email.drafted","email_draft",ident,{"lead_id":body.lead_id});return {"id":ident,"status":"PENDING_APPROVAL"}
+
+@app.post("/api/outreach/drafts/{draft_id}/approve")
+def approve_email_draft(draft_id: str):
+    c=connect(); draft=c.execute("select * from email_drafts where id=?",(draft_id,)).fetchone()
+    if not draft: c.close(); raise HTTPException(404,"Draft not found")
+    lead=c.execute("select * from leads where id=?",(draft["lead_id"],)).fetchone()
+    if not lead or lead["opted_out"]: c.close(); raise HTTPException(403,"Suppression check blocked approval")
+    c.execute("update email_drafts set status='APPROVED_SEND_HANDOFF',approved_at=? where id=?",(now(),draft_id));c.commit();c.close();audit("email.approved_handoff","email_draft",draft_id,{"external_send":False});return {"id":draft_id,"status":"APPROVED_SEND_HANDOFF","sent":False}
+
+@app.get("/api/outreach/drafts")
+def list_email_drafts():
+    c=connect(); rows=[dict(row) for row in c.execute("select * from email_drafts order by created_at desc")];c.close();return rows
 
 @app.post("/api/creators")
 def create_creator(body: CreatorIn):
