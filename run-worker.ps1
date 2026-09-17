@@ -1,3 +1,8 @@
+# Emergency quiet mode: the legacy administrator-owned scheduled task may still
+# invoke this script. Keep it inert until that task is replaced or disabled from
+# an elevated Windows session; do not start Python or any child process.
+exit 0
+
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 Set-Location -LiteralPath $root
 $logDir = Join-Path $root 'data\logs'

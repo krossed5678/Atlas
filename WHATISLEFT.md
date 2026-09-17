@@ -6,7 +6,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 
 ## BUILT AND VERIFIED
 
-- Python 3.12, FastAPI, SQLite persistence, immutable audit events, local dashboard, emergency stop, and the 15-minute `ASTRA Local Safe Worker` are installed and working locally. The worker now starts once as a hidden persistent host at user logon, logs to `data/logs/scheduled-worker.log`, sleeps between 15-minute cycles, and never attaches to or focuses interactive/fullscreen terminals.
+- Python 3.12, FastAPI, SQLite persistence, immutable audit events, local dashboard, and emergency stop are installed and working locally. Background worker autostart is currently **disabled at the user's request** after a visible-terminal interruption; the legacy scheduled script is inert and the Startup shortcut is neutralized. Re-enable only after a non-focus-stealing Windows service/Task Scheduler configuration is verified outside a fullscreen session.
 - Blender 5.2.1 headless scene-file smoke test passed. FFmpeg installation reported success.
 - Ollama 0.34.1 and `qwen3-vl:4b` are installed. The model lives at `C:\Users\koanr\.ollama\models`; a real local synthetic-room vision run returned structured room, camera, material, object, confidence, and uncertainty JSON.
 - User-supplied photo folders can be imported into the per-property project structure and queued for analysis. Upload intake is also available in the dashboard.
@@ -58,7 +58,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - [x] Select Kofi Rossi Stripe test context and default Shopify store in non-secret configuration.
 - [x] Add local licensed-track beat detection and beat-aligned promotional-film cuts.
 - [x] Make an original local luxury score the default for promotional films; use custom/commissioned audio when it is later supplied.
-- [x] Replace repeated scheduled PowerShell launches with one hidden, persistent, logon-start worker host.
+- [ ] Reintroduce unattended worker execution only after verifying it cannot surface a terminal or take focus during fullscreen use. Current autostart is intentionally disabled.
 - [x] Add a per-track public Newgrounds license-inspection API; no automatic music acquisition or commercial-use assumption.
 - [ ] Run a complete supplied-photo-folder-to-cinematic-promotional-video job using an actual property folder.
 - [ ] Add a commercial-use-cleared music track to a property-film request (with source/license note); automatic Newgrounds cycling is deliberately excluded because rights are track-specific.
