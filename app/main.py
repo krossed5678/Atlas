@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 from app.integrations import commerce_configuration, readiness
 from app.trading_lab import Candidate, SUPPORTED_ASSET_CLASSES, current_signal, evolve, load_bars, manifest_entry, save_result
 from app.video import render_photo_promo
+from app.newgrounds import inspect_track
 from app.tiktok_shop import readiness as tiktok_readiness
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -63,6 +64,7 @@ def init_db() -> None:
     create table if not exists email_drafts (id text primary key, lead_id text, subject text, body text, status text, created_at text, approved_at text);
     create table if not exists dropship_products (id text primary key, title text, supplier_name text, supplier_sku text, cost_cents integer, sale_cents integer, status text, created_at text);
     create table if not exists commerce_orders (id text primary key, product_id text, external_order_id text unique, quantity integer, status text, created_at text);
+    create table if not exists music_license_checks (id text primary key, track_url text unique, title text, commercial_status text, license_terms text, checked_at text);
     """)
     defaults = {"emergency_stop": "false", "trading_mode": "PAPER", "live_trading_allowed": "false", "external_writes_enabled": "false", "max_daily_loss_cents": "2500", "max_position_cents": "5000"}
     for key, value in defaults.items():
@@ -148,6 +150,9 @@ class VideoIn(BaseModel):
     music_license_note: str = Field(default="", max_length=500)
     bespoke_score: bool = True
     score_style: Literal["warm_luxury", "coastal", "urban"] = "warm_luxury"
+
+class NewgroundsTrackIn(BaseModel):
+    track_url: str = Field(min_length=30, max_length=300)
 
 class EmailDraftIn(BaseModel):
     lead_id: str
@@ -248,6 +253,21 @@ async def create_property(listing_url: str = Form(""), files: list[UploadFile] =
 @app.get("/api/properties")
 def list_properties():
     c = connect(); rows=[dict(r) for r in c.execute("select * from properties order by created_at desc")]; c.close(); return rows
+
+@app.post("/api/music/newgrounds/license")
+def inspect_newgrounds_license(body: NewgroundsTrackIn):
+    """Inspect public per-track terms only; never download, stream, or use a track."""
+    try: result=inspect_track(body.track_url)
+    except ValueError as exc: raise HTTPException(400,str(exc))
+    except Exception as exc: raise HTTPException(502,f"Could not inspect Newgrounds licensing: {exc}")
+    check_id=str(uuid.uuid4()); c=connect()
+    c.execute("insert into music_license_checks values (?,?,?,?,?,?) on conflict(track_url) do update set title=excluded.title,commercial_status=excluded.commercial_status,license_terms=excluded.license_terms,checked_at=excluded.checked_at",(check_id,result["track_url"],result["title"],result["commercial_status"],result["license_terms"],now()))
+    c.commit();c.close();audit("music.newgrounds_license_checked","music",check_id,{"track_url":result["track_url"],"commercial_status":result["commercial_status"]})
+    return result
+
+@app.get("/api/music/newgrounds/licenses")
+def list_newgrounds_licenses():
+    c=connect(); rows=[dict(row) for row in c.execute("select * from music_license_checks order by checked_at desc")];c.close();return rows
 
 @app.post("/api/properties/{property_id}/promotional-video")
 def make_promotional_video(property_id: str, body: VideoIn):

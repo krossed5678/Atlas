@@ -6,7 +6,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 
 ## BUILT AND VERIFIED
 
-- Python 3.12, FastAPI, SQLite persistence, immutable audit events, local dashboard, emergency stop, and the 15-minute `ASTRA Local Safe Worker` are installed and working locally. The worker runs as a hidden background scheduled task, logs to `data/logs/scheduled-worker.log`, and does not attach to interactive/fullscreen terminals.
+- Python 3.12, FastAPI, SQLite persistence, immutable audit events, local dashboard, emergency stop, and the 15-minute `ASTRA Local Safe Worker` are installed and working locally. The worker now starts once as a hidden persistent host at user logon, logs to `data/logs/scheduled-worker.log`, sleeps between 15-minute cycles, and never attaches to or focuses interactive/fullscreen terminals.
 - Blender 5.2.1 headless scene-file smoke test passed. FFmpeg installation reported success.
 - Ollama 0.34.1 and `qwen3-vl:4b` are installed. The model lives at `C:\Users\koanr\.ollama\models`; a real local synthetic-room vision run returned structured room, camera, material, object, confidence, and uncertainty JSON.
 - User-supplied photo folders can be imported into the per-property project structure and queued for analysis. Upload intake is also available in the dashboard.
@@ -15,6 +15,7 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - Cinematic photo-promo rendering is implemented and verified with FFmpeg: 1080p luxury landscape and TikTok vertical exports, CV-ranked shots, varied slow camera motion, warm color finishing, fades, motion transitions, MP4 generation, and one-click dashboard rendering. It uses supplied images only.
 - Promotional-video shot planning is now composition-aware: it measures visual entropy, symmetry, brightness fit, and line evidence; opens/closes on strong images; and uses compatibility-aware transitions rather than a generic sequence.
 - Promotional films now default to an original, locally generated luxury score — warm pads, restrained 80-BPM pulse, and sparse bell-like accents — rather than an arbitrary catalogue soundtrack. ASTRA detects its onsets, aligns photo cuts to beats, stores a `beat_map.json`, and records rights as `bespoke_local_generated`. A specifically licensed/commissioned local track can still be attached with a permission record; it never downloads music automatically.
+- Public Newgrounds individual-track URLs can now be inspected for their displayed licensing terms. ASTRA records the text and classifies the result as `allowed_with_attribution`, `artist_permission_required`, `not_allowed`, or `manual_review_required`; an inspection never downloads or attaches the audio.
 - Local evolutionary Trading Lab is implemented for normalized stock, ETF, and crypto price bars. It evolves 512 parameterized research agents by default, models fees/slippage, enforces train/validation/test separation, stores versioned per-instrument reports, and can promote only to a paper candidate.
 - Evolution now adds sequential walk-forward folds, multi-criterion promotion gates, market-regime summaries, deterministic early stopping, and SHA-256 market-data lineage. Reference patterns were reviewed from Qlib, FinRL, and MLflow; their heavyweight stacks are intentionally optional rather than installed on the 4 GB GPU machine.
 - Local LLM defaults are optimized for a 4 GB GPU: compact 1024px JPEG vision inputs, concise structured prompt, 2048-token context, 600-token output ceiling, disk-cached JSON results, and automatic model unload after a scheduled task. Trading evolution uses vectorized prefix sums and early stopping to reduce CPU load.
@@ -57,6 +58,8 @@ Repository: `https://github.com/krossed5678/Atlas.git` (`main`)
 - [x] Select Kofi Rossi Stripe test context and default Shopify store in non-secret configuration.
 - [x] Add local licensed-track beat detection and beat-aligned promotional-film cuts.
 - [x] Make an original local luxury score the default for promotional films; use custom/commissioned audio when it is later supplied.
+- [x] Replace repeated scheduled PowerShell launches with one hidden, persistent, logon-start worker host.
+- [x] Add a per-track public Newgrounds license-inspection API; no automatic music acquisition or commercial-use assumption.
 - [ ] Run a complete supplied-photo-folder-to-cinematic-promotional-video job using an actual property folder.
 - [ ] Add a commercial-use-cleared music track to a property-film request (with source/license note); automatic Newgrounds cycling is deliberately excluded because rights are track-specific.
 - [ ] Build and verify Shopify order/catalog webhooks, TikTok Shop sync, creator attribution, approved calendar publishing, and refund reconciliation.
